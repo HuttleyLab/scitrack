@@ -61,11 +61,9 @@ class CachingLogger(object):
     def _record_file(self, file_class, file_path):
         """writes the file path and md5 checksum to log file"""
         file_path = abspath(file_path)
-        msg = " : ".join([file_class, file_path])
         md5sum = get_file_hexdigest(file_path)
-        self.write(msg)
-        msg = " : ".join(["%s md5sum" % file_class, md5sum])
-        self.write(msg)
+        self.write(file_path, label=file_class)
+        self.write(md5sum, label="%s md5sum" % file_class)
     
     def input_file(self, file_path, label="input_file_path"):
         """logs path and md5 checksum"""
@@ -75,9 +73,10 @@ class CachingLogger(object):
         """logs path and md5 checksum"""
         self._record_file(label, file_path)
     
-    def write(self, msg):
+    def write(self, msg, label=None):
         """writes a log message"""
-        
+        label = label or 'misc'
+        msg = ' : '.join([label, msg])
         if not self._started:
             self._messages.append(msg)
         else:
@@ -90,8 +89,11 @@ def set_logger(logfile_name, level=logging.DEBUG):
     logging.basicConfig(filename=logfile_name, filemode='w', level=level,
                 format='%(asctime)s\t%(levelname)s\t%(message)s',
                 datefmt="%Y-%m-%d %H:%M:%S")
-    logging.info('system_details: system=%s:python=%s' % (platform.version(),
+    logging.info('system_details : system=%s:python=%s' % (platform.version(),
                                                   platform.python_version()))
+    logging.info("user : %s" % os.environ['USER'])
+    logging.info("command_string : %s" % ' '.join(sys.argv))
+    
 
 def get_file_hexdigest(filename):
     '''returns the md5 hexadecimal checksum of the file'''
