@@ -14,5 +14,5 @@ _build/*
 build
 *htmlcov*
 *.idea
-draw_results
 *.coverage
+*trackcomp.egg-info*
