@@ -48,6 +48,8 @@ class CachingLogger(object):
             dirname = os.path.dirname(path)
             create_path(dirname)
         
+        self._log_file_path = path
+        
         set_logger(self.log_file_path)
         for m in self._messages:
             logging.info(m)
