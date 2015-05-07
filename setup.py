@@ -19,12 +19,12 @@ if sys.version_info < (2, 7):
 short_description = "trackcomp"
 
 # This ends up displayed by the installer
-long_description = """trackcomp
+long_description = """scitrack
 Lite-weight library to facilitate tracking scientific compute runs %s.
 """ % __version__
 
 setup(
-    name="trackcomp",
+    name="scitrack",
     version=__version__,
     author="Gavin Huttley",
     author_email="gavin.huttley@anu.edu.au",
@@ -41,5 +41,5 @@ setup(
             "Topic :: Software Development :: Libraries :: Python Modules",
             "Operating System :: OS Independent",
             ],
-    packages=['trackcomp'],
+    packages=['scitrack'],
     )

@@ -58,6 +58,23 @@ class CachingLogger(object):
         self._started = True
         
     
+    def _record_file(self, file_class, file_path):
+        """writes the file path and md5 checksum to log file"""
+        file_path = abspath(file_path)
+        msg = " : ".join([file_class, file_path])
+        md5sum = get_file_hexdigest(file_path)
+        self.write(msg)
+        msg = " : ".join(["%s md5sum" % file_class, md5sum])
+        self.write(msg)
+    
+    def input_file(self, file_path, label="input_file_path"):
+        """logs path and md5 checksum"""
+        self._record_file(label, file_path)
+    
+    def output_file(self, file_path, label="output_file_path"):
+        """logs path and md5 checksum"""
+        self._record_file(label, file_path)
+    
     def write(self, msg):
         """writes a log message"""
         
