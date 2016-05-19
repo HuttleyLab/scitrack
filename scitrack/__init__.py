@@ -1,4 +1,4 @@
-import os, sys, platform
+import os, sys, platform, socket
 from traceback import format_exc
 import logging, hashlib
 
@@ -31,7 +31,7 @@ class CachingLogger(object):
         self._started = False
         self.create_dir = create_dir
         self._messages = []
-        
+        self._hostname = socket.gethostname()
         if log_file_path:
             self.log_file_path = log_file_path
         
@@ -76,7 +76,7 @@ class CachingLogger(object):
     def write(self, msg, label=None):
         """writes a log message"""
         label = label or 'misc'
-        msg = ' : '.join([label, msg])
+        msg = ' : '.join([self._hostname, label, msg])
         if not self._started:
             self._messages.append(msg)
         else:
@@ -89,8 +89,8 @@ def set_logger(logfile_name, level=logging.DEBUG):
     logging.basicConfig(filename=logfile_name, filemode='w', level=level,
                 format='%(asctime)s\t%(levelname)s\t%(message)s',
                 datefmt="%Y-%m-%d %H:%M:%S")
-    logging.info('system_details : system=%s:python=%s' % (platform.version(),
-                                                  platform.python_version()))
+    logging.info('system_details : system=%s' % platform.version())
+    logging.info('python : %s' % platform.python_version())
     logging.info("user : %s" % os.environ['USER'])
     logging.info("command_string : %s" % ' '.join(sys.argv))
     
