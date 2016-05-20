@@ -81,6 +81,14 @@ class CachingLogger(object):
         """logs path and md5 checksum"""
         self._record_file(label, file_path)
     
+    def text_data(self, data, label=None):
+        """logs md5 checksum for input text data.
+        
+        For this to be useful you must ensure the text order is persistent."""
+        assert label is not None, "You must provide a data label"
+        md5sum = get_text_hexdigest(data)
+        self.write(md5sum, label=label)
+    
     def write(self, msg, label=None):
         """writes a log message"""
         label = label or 'misc'
@@ -126,3 +134,13 @@ def get_file_hexdigest(filename):
             
             md5.update(data)
     return md5.hexdigest()
+
+def get_text_hexdigest(data):
+    """returns md5 hexadecimal checksum of string/unicode data"""
+    if type(data) not in (str, unicode):
+        raise TypeError("can only checksum string or unicode data")
+    data = data.encode('utf-8')
+    md5 = hashlib.md5()
+    md5.update(data)
+    return md5.hexdigest()
+
