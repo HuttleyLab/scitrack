@@ -16,18 +16,26 @@ def abspath(path):
     """returns an expanded, absolute path"""
     return os.path.abspath(os.path.expanduser(path))
 
-def create_path(path):
+def _create_path(path):
     """creates path"""
-    try:
-        os.makedirs(path)
-    except OSError, e:
-        pass
+    if os.path.exists(path):
+        return
+    
+    os.makedirs(path)
+
+try:
+    from mpiutils.dispatcher import checkmakedirs as create_path
+    from mpiutils.mpi_logging import MPIFileHandler as StreamHandler
+except ImportError:
+    create_path = _create_path
+    StreamHandler = logging.StreamHandler
 
 class CachingLogger(object):
     """stores log messages until a log filename is provided"""
     def __init__(self, log_file_path=None, create_dir=True):
         super(CachingLogger, self).__init__()
         self._log_file_path = None
+        self._logfile = None
         self._started = False
         self.create_dir = create_dir
         self._messages = []
@@ -50,7 +58,7 @@ class CachingLogger(object):
         
         self._log_file_path = path
         
-        set_logger(self.log_file_path)
+        self._logfile = set_logger(self._log_file_path)
         for m in self._messages:
             logging.info(m)
         
@@ -76,24 +84,35 @@ class CachingLogger(object):
     def write(self, msg, label=None):
         """writes a log message"""
         label = label or 'misc'
-        msg = ' : '.join([self._hostname, label, msg])
+        data = [label, msg]
+        msg = ' : '.join(data)
         if not self._started:
             self._messages.append(msg)
         else:
             logging.info(msg)
-        
+    
+    def shutdown(self):
+        """safely shutdown the logger"""
+        logging.getLogger().removeHandler(self._logfile)
+        self._logfile.flush()
+        self._logfile.close()
     
 
-def set_logger(logfile_name, level=logging.DEBUG):
+def set_logger(log_file_path, level=logging.DEBUG):
     """setup logging"""
-    logging.basicConfig(filename=logfile_name, filemode='w', level=level,
-                format='%(asctime)s\t%(levelname)s\t%(message)s',
-                datefmt="%Y-%m-%d %H:%M:%S")
+    handler = StreamHandler(log_file_path, "w")
+    handler.setLevel(level)
+    hostpid = socket.gethostname() + ':' + str(os.getpid())
+    fmt = '%(asctime)s\t' + hostpid + '\t%(levelname)s\t%(message)s'
+    formatter = logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S")
+    handler.setFormatter(formatter)
+    logging.root.addHandler(handler)
+    logging.root.setLevel(level)
     logging.info('system_details : system=%s' % platform.version())
     logging.info('python : %s' % platform.python_version())
     logging.info("user : %s" % os.environ['USER'])
     logging.info("command_string : %s" % ' '.join(sys.argv))
-    
+    return handler
 
 def get_file_hexdigest(filename):
     '''returns the md5 hexadecimal checksum of the file'''
