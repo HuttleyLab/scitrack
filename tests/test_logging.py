@@ -2,7 +2,6 @@
 
 import os, shutil, subprocess
 import sys, os
-sys.path.append('..')
 
 try:
     from mpiutils.dispatcher import USING_MPI, barrier, size

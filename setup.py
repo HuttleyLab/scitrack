@@ -43,5 +43,5 @@ setup(
             "Operating System :: OS Independent",
             ],
     packages=["scitrack"],
-    extras_require={"mpi": "mpiutils"},
+    extras_require={"mpi": ["mpiutils", "mpi4py"]},
     )
