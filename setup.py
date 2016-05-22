@@ -20,7 +20,7 @@ short_description = "scitrack"
 
 # This ends up displayed by the installer
 long_description = """scitrack
-Lite-weight library to facilitate tracking scientific compute runs %s.
+Lite-weight library to facilitate tracking scientific compute runs, version %s.
 """ % __version__
 
 setup(
@@ -31,10 +31,10 @@ setup(
     description=short_description,
     long_description=long_description,
     platforms=["any"],
-    license=["GPL"],
+    license=[__license__],
     keywords=["science", "logging", "parallel"],
     classifiers=[
-            "Development Status :: 5 - Production/Stable",
+            "Development Status :: 3 - Alpha",
             "Intended Audience :: Science/Research",
             "License :: OSI Approved :: GNU General Public License (GPL)",
             "Topic :: Scientific/Engineering :: Bio-Informatics",
@@ -42,5 +42,5 @@ setup(
             "Operating System :: OS Independent",
             ],
     packages=["scitrack"],
-    extras_require={"mpi": ["mpiutils"]},
+    extras_require={"mpi": "mpiutils"},
     )
