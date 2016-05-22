@@ -11,7 +11,6 @@ __maintainer__ = "Gavin Huttley"
 __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "Development"
 
-
 def abspath(path):
     """returns an expanded, absolute path"""
     return os.path.abspath(os.path.expanduser(path))
@@ -25,10 +24,10 @@ def _create_path(path):
 
 try:
     from mpiutils.dispatcher import checkmakedirs as create_path
-    from mpiutils.mpi_logging import MPIFileHandler as StreamHandler
+    from mpiutils.mpi_logging import MPIFileHandler as FileHandler
 except ImportError:
     create_path = _create_path
-    StreamHandler = logging.StreamHandler
+    FileHandler = logging.FileHandler
 
 class CachingLogger(object):
     """stores log messages until a log filename is provided"""
@@ -108,7 +107,7 @@ class CachingLogger(object):
 
 def set_logger(log_file_path, level=logging.DEBUG):
     """setup logging"""
-    handler = StreamHandler(log_file_path, "w")
+    handler = FileHandler(log_file_path, "w")
     handler.setLevel(level)
     hostpid = socket.gethostname() + ':' + str(os.getpid())
     fmt = '%(asctime)s\t' + hostpid + '\t%(levelname)s\t%(message)s'
