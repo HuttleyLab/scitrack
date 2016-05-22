@@ -3,9 +3,9 @@ from traceback import format_exc
 import logging, hashlib
 
 __author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2014, Gavin Huttley"
+__copyright__ = "Copyright 2016, Gavin Huttley"
 __credits__ = ["Gavin Huttley"]
-__license__ = "GPL"
+__license__ = "GPLv3 or any later version"
 __version__ = "0.1"
 __maintainer__ = "Gavin Huttley"
 __email__ = "Gavin.Huttley@anu.edu.au"
