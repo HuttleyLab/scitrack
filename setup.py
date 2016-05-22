@@ -5,7 +5,7 @@ import sys
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016, Gavin Huttley"
 __credits__ = ["Gavin Huttley"]
-__license__ = "GPLv3 or any later version"
+__license__ = "BSD"
 __version__ = "0.1"
 __maintainer__ = "Gavin Huttley"
 __email__ = "Gavin.Huttley@anu.edu.au"
@@ -36,6 +36,7 @@ setup(
     classifiers=[
             "Development Status :: 3 - Alpha",
             "Intended Audience :: Science/Research",
+            "Programming Language :: Python :: 2.7",
             "License :: OSI Approved :: GNU General Public License (GPL)",
             "Topic :: Scientific/Engineering :: Bio-Informatics",
             "Topic :: Software Development :: Libraries :: Python Modules",
