@@ -17,9 +17,9 @@ Until it's up on pypi, the following command will work::
 Or clone it::
 
     $ hg clone ssh://hg@bitbucket.org/gavin.huttley/scitrack
-    
+
 And then install::
-    
+
     $ pip install ~/path/to/scitrack
 
 *****************
@@ -80,18 +80,31 @@ Here's one approach when using the ``click`` `command line interface library <ht
     ...     cfg_context.test = test
     ...
     ...     args = vars(cfg_context)
-    ...     LOGGER.write(str(args), label='vars')
+    ...     LOGGER.log_message(str(args), label='vars')
     ...     LOGGER.input_file(infile.name)
     ...     LOGGER.log_file_path = "some_path.log"
     ...
     >>>
 
-The ``CachingLogger.write()`` method takes a message and a label. All other logging methods basically wrap ``write``, providing a specific label. For instance, the method ``input_file()`` writes out two lines in the log.
+The ``CachingLogger.write()`` method takes a message and a label. All other logging methods wrap ``log_message()``, providing a specific label. For instance, the method ``input_file()`` writes out two lines in the log.
 
     - input_file_path, the absolute path to the intput file
     - input_file_path md5sum, the hex digest of the file
 
 ``output_file()`` behaves analogously. An additional method ``text_data()`` is useful for other data input/output sources (e.g. records from a database). For this to have value for arbitrary data types requires a systematic approach to ensuring the text conversion is robust across platforms.
+
+Some sample output
+==================
+
+::
+
+    2016-05-22 11:37:17	Thales.local:6095	INFO	system_details : system=Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64
+    2016-05-22 11:37:17	Thales.local:6095	INFO	python : 2.7.10
+    2016-05-22 11:37:17	Thales.local:6095	INFO	user : gavin
+    2016-05-22 11:37:17	Thales.local:6095	INFO	command_string : /Users/gavin/.virtualenvs/delme/bin/nosetests
+    2016-05-22 11:37:17	Thales.local:6095	INFO	input_file_path : /Users/gavin/DevRepos/SciTrack/tests/sample.fasta
+    2016-05-22 11:37:17	Thales.local:6095	INFO	input_file_path md5sum : 96eb2c2632bae19eb65ea9224aaafdad
+
 
 **********************
 Other useful functions

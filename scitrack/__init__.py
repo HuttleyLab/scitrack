@@ -41,7 +41,6 @@ class CachingLogger(object):
         self._hostname = socket.gethostname()
         if log_file_path:
             self.log_file_path = log_file_path
-        
     
     @property
     def log_file_path(self):
@@ -63,33 +62,44 @@ class CachingLogger(object):
         
         self._messages = []
         self._started = True
-        
     
     def _record_file(self, file_class, file_path):
         """writes the file path and md5 checksum to log file"""
         file_path = abspath(file_path)
         md5sum = get_file_hexdigest(file_path)
-        self.write(file_path, label=file_class)
-        self.write(md5sum, label="%s md5sum" % file_class)
+        self.log_message(file_path, label=file_class)
+        self.log_message(md5sum, label="%s md5sum" % file_class)
     
     def input_file(self, file_path, label="input_file_path"):
-        """logs path and md5 checksum"""
+        """logs path and md5 checksum
+        
+        Argument:
+            - label is inserted before the message"""
         self._record_file(label, file_path)
     
     def output_file(self, file_path, label="output_file_path"):
-        """logs path and md5 checksum"""
+        """logs path and md5 checksum
+        
+        Argument:
+            - label is inserted before the message"""
         self._record_file(label, file_path)
     
     def text_data(self, data, label=None):
         """logs md5 checksum for input text data.
         
+        Argument:
+            - label is inserted before the message
+        
         For this to be useful you must ensure the text order is persistent."""
         assert label is not None, "You must provide a data label"
         md5sum = get_text_hexdigest(data)
-        self.write(md5sum, label=label)
+        self.log_message(md5sum, label=label)
     
-    def write(self, msg, label=None):
-        """writes a log message"""
+    def log_message(self, msg, label=None):
+        """writes a log message
+        
+        Argument:
+            - label is inserted before the message"""
         label = label or 'misc'
         data = [label, msg]
         msg = ' : '.join(data)
@@ -142,4 +152,3 @@ def get_text_hexdigest(data):
     md5 = hashlib.md5()
     md5.update(data)
     return md5.hexdigest()
-
