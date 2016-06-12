@@ -10,7 +10,11 @@ One of the critical challenges in scientific analysis is to track all the elemen
 Installing
 **********
 
-Until it's up on pypi, the following command will work::
+For the released version::
+
+    $ pip install scitrack
+
+For the very latest version::
 
     $ pip install hg+ssh://hg@bitbucket.org/gavin.huttley/scitrack
 
@@ -38,11 +42,14 @@ When run in parallel using ``mpirun``, the process ID is appended to the hostnam
 Simple instantiation of the logger
 **********************************
 
-Creating the logger. Setting ``create_dir=True`` means on creation of the logfile, the directory path will be created also.::
+Creating the logger. Setting ``create_dir=True`` means on creation of the logfile, the directory path will be created also.
 
-    >>> from scitrack import CachingLogger
-    >>> LOGGER = CachingLogger(create_dir=True)
-    >>> LOGGER.log_file_path = "somedir/some_path.log"
+.. sourcecode :: python
+
+    from scitrack import CachingLogger
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = "somedir/some_path.log"
+    
 
 The last assignment triggers creation of ``somedir/some_path.log``.
 
@@ -52,39 +59,42 @@ Capturing a programs arguments and options
 
 ``scitrack`` will write the contents of ``sys.argv`` to the log file, prefixed by ``command_string``. However, this only captures arguments specified on the command line. Tracking the value of optional arguments not specified, which may have default values, is critical to tracking the full command set. Doing this is your responsibility as a developer.
 
-Here's one approach when using the ``click`` `command line interface library <http://click.pocoo.org/>`_. Below we create a simple ``click`` app and capture the required and optional argument values.::
+Here's one approach when using the ``click`` `command line interface library <http://click.pocoo.org/>`_. Below we create a simple ``click`` app and capture the required and optional argument values.
 
-    >>> from scitrack import CachingLogger
-    >>> import click
-    >>>
-    >>> LOGGER = CachingLogger()
-    >>>
-    >>> class Config(object):
-    ...     def __init__(self):
-    ...         super(Config, self).__init__()
-    ...
-    >>> pass_config = click.make_pass_decorator(Config, ensure=True)
-    >>>
-    >>> @click.group()
-    >>> @click.option('--foo', help='Text arg.')
-    >>> @pass_config
-    >>> def main(cfg_context, foo):
-    ...     cfg_context.foo = foo
-    ...
-    >>> @main.command()
-    >>> @click.option('--infile', type=click.File('rb'))
-    >>> @click.option('--test', is_flag=True, help='Run test.')
-    >>> @pass_config
-    >>> def my_app(cfg_context, infile, test):
-    ...     cfg_context.infile = infile.name
-    ...     cfg_context.test = test
-    ...
-    ...     args = vars(cfg_context)
-    ...     LOGGER.log_message(str(args), label='vars')
-    ...     LOGGER.input_file(infile.name)
-    ...     LOGGER.log_file_path = "some_path.log"
-    ...
-    >>>
+.. sourcecode :: python
+
+    from scitrack import CachingLogger
+    import click
+    
+    LOGGER = CachingLogger()
+    
+    class Config(object):
+        def __init__(self):
+            super(Config, self).__init__()
+    
+    pass_config = click.make_pass_decorator(Config, ensure=True)
+    
+    @click.group()
+    @click.option('--foo', help='Text arg.')
+    @pass_config
+    def main(cfg_context, foo):
+        cfg_context.foo = foo
+    
+    @main.command()
+    @click.option('--infile', type=click.File('rb'))
+    @click.option('--test', is_flag=True, help='Run test.')
+    @pass_config
+    def my_app(cfg_context, infile, test):
+        # capture the provided arguments and those from a click
+        # context
+        args = locals()
+        args.update(vars(cfg_context))
+        
+        LOGGER.log_message(str(args), label='vars')
+        LOGGER.input_file(infile.name)
+        LOGGER.log_file_path = "some_path.log"
+    
+    
 
 The ``CachingLogger.write()`` method takes a message and a label. All other logging methods wrap ``log_message()``, providing a specific label. For instance, the method ``input_file()`` writes out two lines in the log.
 
