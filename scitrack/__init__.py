@@ -134,7 +134,7 @@ def set_logger(log_file_path, level=logging.DEBUG):
 def get_file_hexdigest(filename):
     '''returns the md5 hexadecimal checksum of the file'''
     # from http://stackoverflow.com/questions/1131220/get-md5-hash-of-big-files-in-python
-    with open(filename) as infile:
+    with open(filename, 'rb') as infile:
         md5 = hashlib.md5()
         while True:
             data = infile.read(128)
@@ -146,7 +146,7 @@ def get_file_hexdigest(filename):
 
 def get_text_hexdigest(data):
     """returns md5 hexadecimal checksum of string/unicode data"""
-    if type(data) not in (str, unicode):
+    if data.__class__ not in ("".__class__, u"".__class__):
         raise TypeError("can only checksum string or unicode data")
     data = data.encode('utf-8')
     md5 = hashlib.md5()
