@@ -1,6 +1,10 @@
-import os, sys, platform, socket
+import os
+import sys
+import platform
+import socket
 from traceback import format_exc
-import logging, hashlib
+import logging
+import hashlib
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016, Gavin Huttley"
@@ -11,15 +15,17 @@ __maintainer__ = "Gavin Huttley"
 __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "Development"
 
+
 def abspath(path):
     """returns an expanded, absolute path"""
     return os.path.abspath(os.path.expanduser(path))
+
 
 def _create_path(path):
     """creates path"""
     if os.path.exists(path):
         return
-    
+
     os.makedirs(path)
 
 try:
@@ -29,8 +35,10 @@ except ImportError:
     create_path = _create_path
     FileHandler = logging.FileHandler
 
+
 class CachingLogger(object):
     """stores log messages until a log filename is provided"""
+
     def __init__(self, log_file_path=None, create_dir=True):
         super(CachingLogger, self).__init__()
         self._log_file_path = None
@@ -41,11 +49,11 @@ class CachingLogger(object):
         self._hostname = socket.gethostname()
         if log_file_path:
             self.log_file_path = log_file_path
-    
+
     @property
     def log_file_path(self):
         return self._log_file_path
-    
+
     @log_file_path.setter
     def log_file_path(self, path):
         """set the log file path and then dump cached log messages"""
@@ -53,51 +61,51 @@ class CachingLogger(object):
         if self.create_dir:
             dirname = os.path.dirname(path)
             create_path(dirname)
-        
+
         self._log_file_path = path
-        
+
         self._logfile = set_logger(self._log_file_path)
         for m in self._messages:
             logging.info(m)
-        
+
         self._messages = []
         self._started = True
-    
+
     def _record_file(self, file_class, file_path):
         """writes the file path and md5 checksum to log file"""
         file_path = abspath(file_path)
         md5sum = get_file_hexdigest(file_path)
         self.log_message(file_path, label=file_class)
         self.log_message(md5sum, label="%s md5sum" % file_class)
-    
+
     def input_file(self, file_path, label="input_file_path"):
         """logs path and md5 checksum
-        
+
         Argument:
             - label is inserted before the message"""
         self._record_file(label, file_path)
-    
+
     def output_file(self, file_path, label="output_file_path"):
         """logs path and md5 checksum
-        
+
         Argument:
             - label is inserted before the message"""
         self._record_file(label, file_path)
-    
+
     def text_data(self, data, label=None):
         """logs md5 checksum for input text data.
-        
+
         Argument:
             - label is inserted before the message
-        
+
         For this to be useful you must ensure the text order is persistent."""
         assert label is not None, "You must provide a data label"
         md5sum = get_text_hexdigest(data)
         self.log_message(md5sum, label=label)
-    
+
     def log_message(self, msg, label=None):
         """writes a log message
-        
+
         Argument:
             - label is inserted before the message"""
         label = label or 'misc'
@@ -107,13 +115,13 @@ class CachingLogger(object):
             self._messages.append(msg)
         else:
             logging.info(msg)
-    
+
     def shutdown(self):
         """safely shutdown the logger"""
         logging.getLogger().removeHandler(self._logfile)
         self._logfile.flush()
         self._logfile.close()
-    
+
 
 def set_logger(log_file_path, level=logging.DEBUG):
     """setup logging"""
@@ -131,18 +139,21 @@ def set_logger(log_file_path, level=logging.DEBUG):
     logging.info("command_string : %s" % ' '.join(sys.argv))
     return handler
 
+
 def get_file_hexdigest(filename):
     '''returns the md5 hexadecimal checksum of the file'''
-    # from http://stackoverflow.com/questions/1131220/get-md5-hash-of-big-files-in-python
+    # from
+    # http://stackoverflow.com/questions/1131220/get-md5-hash-of-big-files-in-python
     with open(filename, 'rb') as infile:
         md5 = hashlib.md5()
         while True:
             data = infile.read(128)
             if not data:
                 break
-            
+
             md5.update(data)
     return md5.hexdigest()
+
 
 def get_text_hexdigest(data):
     """returns md5 hexadecimal checksum of string/unicode data"""

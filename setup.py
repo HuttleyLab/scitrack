@@ -38,7 +38,7 @@ setup(
             "Intended Audience :: Science/Research",
             "Programming Language :: Python :: 2.7",
             "Programming Language :: Python :: 3",
-            "License :: OSI Approved :: GNU General Public License (GPL)",
+            "License :: OSI Approved :: BSD-3-Clause",
             "Topic :: Scientific/Engineering :: Bio-Informatics",
             "Topic :: Software Development :: Libraries :: Python Modules",
             "Operating System :: OS Independent",
