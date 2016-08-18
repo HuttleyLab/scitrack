@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import os, shutil, subprocess
-import sys, os
+import os
+import shutil
+import subprocess
+import sys
+import os
 
 try:
     from mpiutils.dispatcher import USING_MPI, barrier, size
@@ -25,6 +28,7 @@ __status__ = "Development"
 LOGFILE_NAME = "delme.log"
 DIRNAME = "delme"
 
+
 def test_creates_path():
     """creates a log path"""
     LOGGER = CachingLogger(create_dir=True)
@@ -39,6 +43,7 @@ def test_creates_path():
     except OSError:
         pass
 
+
 def test_tracks_args():
     """details on host, python version should be present in log"""
     LOGGER = CachingLogger(create_dir=True)
@@ -49,13 +54,15 @@ def test_tracks_args():
     with open(LOGFILE_NAME, "r") as infile:
         contents = "".join(infile.readlines())
         for label in ["system_details", "python", "user", "command_string"]:
-            assert contents.count(label) == size(), (label, contents.count(label))
+            assert contents.count(label) == size(
+            ), (label, contents.count(label))
     barrier()
     try:
         os.remove(LOGFILE_NAME)
     except OSError:
         pass
-    
+
+
 def test_mdsum_input():
     """md5 sum of input file should be correct"""
     LOGGER = CachingLogger(create_dir=True)
@@ -71,13 +78,14 @@ def test_mdsum_input():
                 assert "96eb2c2632bae19eb65ea9224aaafdad" in line
                 num += 1
         assert num == size()
-    
+
     barrier()
     try:
         os.remove(LOGFILE_NAME)
     except OSError:
         pass
-    
+
+
 def test_md5sum_text():
     """md5 sum for text data should be computed"""
     data = u"åbcde"
@@ -86,4 +94,3 @@ def test_md5sum_text():
     data = "abcde"
     s = get_text_hexdigest(data)
     assert s
-    
