@@ -16,3 +16,8 @@ build
 *.idea
 *.coverage
 *trackcomp.egg-info*
+dist/*
+*.cache
+scitrack.egg*
+*.sublime-*
+*.wpu
