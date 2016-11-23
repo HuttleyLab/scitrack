@@ -2,6 +2,7 @@
 
 import os
 import shutil
+from collections import Counter
 import subprocess
 import sys
 import os
@@ -57,6 +58,38 @@ def test_tracks_args():
             assert contents.count(label) == size(
             ), (label, contents.count(label))
     barrier()
+    try:
+        os.remove(LOGFILE_NAME)
+    except OSError:
+        pass
+
+
+def test_appending():
+    """appending to an existing logfile should work"""
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = LOGFILE_NAME
+    LOGGER.input_file("sample.fasta")
+    LOGGER.shutdown()
+    records = Counter()
+    with open(LOGFILE_NAME) as infile:
+        for line in infile:
+            records[line] += 1
+    vals = set(list(records.values()))
+    assert vals == {1}
+    LOGGER = CachingLogger(create_dir=True, mode="a")
+    LOGGER.log_file_path = LOGFILE_NAME
+    LOGGER.input_file("sample.fasta")
+    LOGGER.shutdown()
+    barrier()
+
+    records = Counter()
+    with open(LOGFILE_NAME) as infile:
+        for line in infile:
+            records[line] += 1
+    vals = set(list(records.values()))
+
+    assert vals == {2}
+
     try:
         os.remove(LOGFILE_NAME)
     except OSError:

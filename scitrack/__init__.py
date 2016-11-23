@@ -39,7 +39,7 @@ except ImportError:
 class CachingLogger(object):
     """stores log messages until a log filename is provided"""
 
-    def __init__(self, log_file_path=None, create_dir=True):
+    def __init__(self, log_file_path=None, create_dir=True, mode="w"):
         super(CachingLogger, self).__init__()
         self._log_file_path = None
         self._logfile = None
@@ -47,6 +47,7 @@ class CachingLogger(object):
         self.create_dir = create_dir
         self._messages = []
         self._hostname = socket.gethostname()
+        self._mode = mode
         if log_file_path:
             self.log_file_path = log_file_path
 
@@ -64,7 +65,7 @@ class CachingLogger(object):
 
         self._log_file_path = path
 
-        self._logfile = set_logger(self._log_file_path)
+        self._logfile = set_logger(self._log_file_path, mode=self._mode)
         for m in self._messages:
             logging.info(m)
 
@@ -123,9 +124,9 @@ class CachingLogger(object):
         self._logfile.close()
 
 
-def set_logger(log_file_path, level=logging.DEBUG):
+def set_logger(log_file_path, level=logging.DEBUG, mode="w"):
     """setup logging"""
-    handler = FileHandler(log_file_path, "w")
+    handler = FileHandler(log_file_path, mode)
     handler.setLevel(level)
     hostpid = socket.gethostname() + ':' + str(os.getpid())
     fmt = '%(asctime)s\t' + hostpid + '\t%(levelname)s\t%(message)s'
