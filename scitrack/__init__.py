@@ -65,12 +65,22 @@ class CachingLogger(object):
 
         self._log_file_path = path
 
-        self._logfile = set_logger(self._log_file_path, mode=self._mode)
+        self._logfile = set_logger(self._log_file_path, mode=self.mode)
         for m in self._messages:
             logging.info(m)
 
         self._messages = []
         self._started = True
+
+    @property
+    def mode(self):
+        """the logfile opening mode"""
+        return self._mode
+
+    @mode.setter
+    def mode(self, mode):
+        """the logfile file opening mode"""
+        self._mode = mode
 
     def _record_file(self, file_class, file_path):
         """writes the file path and md5 checksum to log file"""

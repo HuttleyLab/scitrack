@@ -76,7 +76,8 @@ def test_appending():
             records[line] += 1
     vals = set(list(records.values()))
     assert vals == {1}
-    LOGGER = CachingLogger(create_dir=True, mode="a")
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.mode = "a"
     LOGGER.log_file_path = LOGFILE_NAME
     LOGGER.input_file("sample.fasta")
     LOGGER.shutdown()
