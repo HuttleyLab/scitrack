@@ -2,7 +2,6 @@ import os
 import sys
 import platform
 import socket
-from traceback import format_exc
 import logging
 import hashlib
 import inspect
