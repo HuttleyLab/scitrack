@@ -5,6 +5,7 @@ import socket
 from traceback import format_exc
 import logging
 import hashlib
+import inspect
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016, Gavin Huttley"
@@ -126,6 +127,22 @@ class CachingLogger(object):
             self._messages.append(msg)
         else:
             logging.info(msg)
+
+    def log_args(self, args=None):
+        """save arguments to file using label='params'
+        Argument:
+            - args: if None, uses inspect module to get locals
+              from the calling frame"""
+        if args is None:
+            parent = inspect.currentframe().f_back
+            args = inspect.getargvalues(parent).locals
+
+        # remove args whose value is a CachingLogger
+        for k in list(args):
+            if type(args[k]) == self.__class__:
+                del(args[k])
+
+        self.log_message(str(args), label="params")
 
     def shutdown(self):
         """safely shutdown the logger"""

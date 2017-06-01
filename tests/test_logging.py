@@ -64,6 +64,32 @@ def test_tracks_args():
         pass
 
 
+def test_tracks_locals():
+    """details on local arguments should be present in log"""
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = os.path.join(LOGFILE_NAME)
+
+    def track_func(a=1, b="abc"):
+        LOGGER.log_args()
+
+    track_func()
+    LOGGER.shutdown()
+    barrier()
+    with open(LOGFILE_NAME, "r") as infile:
+        for line in infile:
+            index = line.find("params :")
+            if index > 0:
+                got = eval(line.split("params :")[1])
+                break
+    assert got == dict(a=1, b="abc")
+    barrier()
+    try:
+        os.remove(LOGFILE_NAME)
+        pass
+    except OSError:
+        pass
+
+
 def test_appending():
     """appending to an existing logfile should work"""
     LOGGER = CachingLogger(create_dir=True)
