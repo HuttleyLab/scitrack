@@ -51,6 +51,15 @@ class CachingLogger(object):
         if log_file_path:
             self.log_file_path = log_file_path
 
+    def _reset(self, mode="w"):
+        self._log_file_path = None
+        self._mode = mode
+        self._started = False
+        self._messages = []
+        if self._logfile is not None:
+            self._logfile.close()
+            self._logfile = None
+
     @property
     def log_file_path(self):
         return self._log_file_path
@@ -148,6 +157,8 @@ class CachingLogger(object):
         logging.getLogger().removeHandler(self._logfile)
         self._logfile.flush()
         self._logfile.close()
+        self._logfile = None
+        self._reset()
 
 
 def set_logger(log_file_path, level=logging.DEBUG, mode="w"):
