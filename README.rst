@@ -65,36 +65,26 @@ Here's one approach when using the ``click`` `command line interface library <ht
 
     from scitrack import CachingLogger
     import click
-    
+
     LOGGER = CachingLogger()
-    
-    class Config(object):
-        def __init__(self):
-            super(Config, self).__init__()
-    
-    pass_config = click.make_pass_decorator(Config, ensure=True)
-    
+
     @click.group()
-    @click.option('--foo', help='Text arg.')
-    @pass_config
-    def main(cfg_context, foo):
-        cfg_context.foo = foo
-    
+    def main():
+        """the main command"""
+        pass
+
     @main.command()
-    @click.option('--infile', type=click.File('rb'))
-    @click.option('--test', is_flag=True, help='Run test.')
-    @pass_config
-    def my_app(cfg_context, infile, test):
-        # capture the provided arguments and those from a click
-        # context
-        args = locals()
-        args.update(vars(cfg_context))
-        
-        LOGGER.log_message(str(args), label='vars')
+    @click.option('-i', '--infile', type=click.File('rb'))
+    @click.option('-t', '--test', is_flag=True, help='Run test.')
+    def my_app(infile, test):
+        # capture the local variables, at this point just provided arguments
+        LOGGER.log_args()
         LOGGER.input_file(infile.name)
         LOGGER.log_file_path = "some_path.log"
-    
-    
+
+    if __name__ == "__main__":
+        my_app()
+
 
 The ``CachingLogger.write()`` method takes a message and a label. All other logging methods wrap ``log_message()``, providing a specific label. For instance, the method ``input_file()`` writes out two lines in the log.
 
@@ -102,6 +92,8 @@ The ``CachingLogger.write()`` method takes a message and a label. All other logg
     - input_file_path md5sum, the hex digest of the file
 
 ``output_file()`` behaves analogously. An additional method ``text_data()`` is useful for other data input/output sources (e.g. records from a database). For this to have value for arbitrary data types requires a systematic approach to ensuring the text conversion is robust across platforms.
+
+The ``log_args()`` method captures all local variables within a scope.
 
 Some sample output
 ==================
