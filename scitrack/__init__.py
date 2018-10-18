@@ -10,7 +10,7 @@ __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016, Gavin Huttley"
 __credits__ = ["Gavin Huttley"]
 __license__ = "BSD"
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 __maintainer__ = "Gavin Huttley"
 __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "Development"
@@ -26,7 +26,8 @@ def _create_path(path):
     if os.path.exists(path):
         return
 
-    os.makedirs(path)
+    os.makedirs(path, exist_ok=True)
+
 
 try:
     from mpiutils.dispatcher import checkmakedirs as create_path
