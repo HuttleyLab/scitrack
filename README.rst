@@ -74,12 +74,13 @@ Here's one approach when using the ``click`` `command line interface library <ht
         pass
 
     @main.command()
-    @click.option('-i', '--infile', type=click.File('rb'))
+    @click.option('-i', '--infile', type=click.Path(exists=True))
     @click.option('-t', '--test', is_flag=True, help='Run test.')
     def my_app(infile, test):
         # capture the local variables, at this point just provided arguments
         LOGGER.log_args()
-        LOGGER.input_file(infile.name)
+        LOGGER.log_versions('numpy')
+        LOGGER.input_file(infile)
         LOGGER.log_file_path = "some_path.log"
 
     if __name__ == "__main__":
@@ -95,18 +96,22 @@ The ``CachingLogger.write()`` method takes a message and a label. All other logg
 
 The ``log_args()`` method captures all local variables within a scope.
 
+The ``log_versions()`` method captures versions for the current file and that of a list of named packages, e.g. ``LOGGER.log_versions(['numpy', 'sklearn'])``.
+
+
 Some sample output
 ==================
 
 ::
 
-    2016-05-22 11:37:17	Thales.local:6095	INFO	system_details : system=Darwin Kernel Version 15.5.0: Tue Apr 19 18:36:36 PDT 2016; root:xnu-3248.50.21~8/RELEASE_X86_64
-    2016-05-22 11:37:17	Thales.local:6095	INFO	python : 2.7.10
-    2016-05-22 11:37:17	Thales.local:6095	INFO	user : gavin
-    2016-05-22 11:37:17	Thales.local:6095	INFO	command_string : /Users/gavin/.virtualenvs/delme/bin/nosetests
-    2016-05-22 11:37:17	Thales.local:6095	INFO	input_file_path : /Users/gavin/DevRepos/SciTrack/tests/sample.fasta
-    2016-05-22 11:37:17	Thales.local:6095	INFO	input_file_path md5sum : 96eb2c2632bae19eb65ea9224aaafdad
-
+    2018-11-28 11:33:30 yourmachine.com:71779   INFO    system_details : system=Darwin Kernel Version 18.2.0: Fri Oct  5 19:41:49 PDT 2018; root:xnu-4903.221.2~2/RELEASE_X86_64
+    2018-11-28 11:33:30 yourmachine.com:71779   INFO    python : 3.7.1
+    2018-11-28 11:33:30 yourmachine.com:71779   INFO    user : gavin
+    2018-11-28 11:33:30 yourmachine.com:71779   INFO    command_string : /Users/gavin/miniconda3/envs/py37/bin/py.test -s
+    2018-11-28 11:33:30 yourmachine.com:71779   INFO    input_file_path : /Users/gavin/repos/SciTrack/tests/sample.fasta
+    2018-11-28 11:33:30 yourmachine.com:71779   INFO    input_file_path md5sum : 96eb2c2632bae19eb65ea9224aaafdad
+    2018-11-28 11:33:30 yourmachine.com:71779   INFO    version : test_logging==0.1.5
+    2018-11-28 11:33:30 yourmachine.com:71779   INFO    version : numpy==1.15.1
 
 **********************
 Other useful functions

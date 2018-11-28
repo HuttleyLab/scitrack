@@ -5,6 +5,7 @@ import socket
 import logging
 import hashlib
 import inspect
+import importlib
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016, Gavin Huttley"
@@ -14,6 +15,9 @@ __version__ = "0.1.5"
 __maintainer__ = "Gavin Huttley"
 __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "Development"
+
+
+VERSION_ATTRS = ['__version__', 'version', 'VERSION']
 
 
 def abspath(path):
@@ -27,6 +31,45 @@ def _create_path(path):
         return
 
     os.makedirs(path, exist_ok=True)
+
+
+def get_package_name(object):
+    """returns the package name for the provided object"""
+    name = inspect.getmodule(object).__name__
+    package = name.split('.')[0]
+    return package
+
+
+def get_version_for_package(package):
+    """returns the version of package"""
+    if type(package) == str:
+        try:
+            mod = importlib.import_module(package)
+        except ModuleNotFoundError:
+            raise ValueError('Unknown package %s' % package)
+    elif inspect.ismodule(package):
+        mod = package
+    else:
+        raise ValueError('Unknown type, package %s' % package)
+
+    vn = None
+
+    for v in VERSION_ATTRS:
+        try:
+            vn = getattr(mod, v)
+            if callable(vn):
+                vn = vn()
+
+            break
+        except AttributeError:
+            pass
+
+    if type(vn) in (tuple, list):
+        vn = vn[0]
+
+    del(mod)
+
+    return vn
 
 
 try:
@@ -160,6 +203,36 @@ class CachingLogger(object):
         self._logfile.close()
         self._logfile = None
         self._reset()
+
+    def log_versions(self, packages=None):
+        """logs version from the global namespace where
+        method is invoked, plus from any named packages"""
+        if type(packages) == str or inspect.ismodule(packages):
+            packages = [packages]
+        elif packages is None:
+            packages = []
+
+        for i, p in enumerate(packages):
+            if inspect.ismodule(p):
+                packages[i] = p.__name__
+
+        parent = inspect.currentframe().f_back
+        g = parent.f_globals
+        name = g.get('__package__', g.get('__name__', ''))
+        if name:
+            vn = get_version_for_package(name)
+        else:
+            vn = [g.get(v, None) for v in VERSION_ATTRS if g.get(v, None)]
+            vn = None if not vn else vn[0]
+            name = get_package_name(parent)
+
+        versions = [(name, vn)]
+        for package in packages:
+            vn = get_version_for_package(package)
+            versions.append((package, vn))
+
+        for n_v in versions:
+            self.log_message("%s==%s" % n_v, label="version")
 
 
 def set_logger(log_file_path, level=logging.DEBUG, mode="w"):
