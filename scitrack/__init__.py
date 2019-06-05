@@ -268,7 +268,14 @@ def get_file_hexdigest(filename):
 
 
 def get_text_hexdigest(data):
-    """returns md5 hexadecimal checksum of string/unicode data"""
+    """returns md5 hexadecimal checksum of string/unicode data
+
+    NOTE
+    ----
+    the md5 sum of get_text_hexdigest can differ from get_file_hexdigest.
+    This will occur if the line ending character differs from being read in
+    'rb' versus 'r' modes.
+    """
     if data.__class__ not in ("".__class__, u"".__class__):
         raise TypeError("can only checksum string or unicode data")
     data = data.encode('utf-8')
