@@ -17,7 +17,7 @@ __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "Development"
 
 
-VERSION_ATTRS = ['__version__', 'version', 'VERSION']
+VERSION_ATTRS = ["__version__", "version", "VERSION"]
 
 
 def abspath(path):
@@ -36,7 +36,7 @@ def _create_path(path):
 def get_package_name(object):
     """returns the package name for the provided object"""
     name = inspect.getmodule(object).__name__
-    package = name.split('.')[0]
+    package = name.split(".")[0]
     return package
 
 
@@ -46,11 +46,11 @@ def get_version_for_package(package):
         try:
             mod = importlib.import_module(package)
         except ModuleNotFoundError:
-            raise ValueError('Unknown package %s' % package)
+            raise ValueError("Unknown package %s" % package)
     elif inspect.ismodule(package):
         mod = package
     else:
-        raise ValueError('Unknown type, package %s' % package)
+        raise ValueError("Unknown type, package %s" % package)
 
     vn = None
 
@@ -67,7 +67,7 @@ def get_version_for_package(package):
     if type(vn) in (tuple, list):
         vn = vn[0]
 
-    del(mod)
+    del mod
 
     return vn
 
@@ -172,9 +172,9 @@ class CachingLogger(object):
 
         Argument:
             - label is inserted before the message"""
-        label = label or 'misc'
+        label = label or "misc"
         data = [label, msg]
-        msg = ' : '.join(data)
+        msg = " : ".join(data)
         if not self._started:
             self._messages.append(msg)
         else:
@@ -192,7 +192,7 @@ class CachingLogger(object):
         # remove args whose value is a CachingLogger
         for k in list(args):
             if type(args[k]) == self.__class__:
-                del(args[k])
+                del args[k]
 
         self.log_message(str(args), label="params")
 
@@ -218,7 +218,7 @@ class CachingLogger(object):
 
         parent = inspect.currentframe().f_back
         g = parent.f_globals
-        name = g.get('__package__', g.get('__name__', ''))
+        name = g.get("__package__", g.get("__name__", ""))
         if name:
             vn = get_version_for_package(name)
         else:
@@ -239,24 +239,31 @@ def set_logger(log_file_path, level=logging.DEBUG, mode="w"):
     """setup logging"""
     handler = FileHandler(log_file_path, mode)
     handler.setLevel(level)
-    hostpid = socket.gethostname() + ':' + str(os.getpid())
-    fmt = '%(asctime)s\t' + hostpid + '\t%(levelname)s\t%(message)s'
+    hostpid = socket.gethostname() + ":" + str(os.getpid())
+    fmt = "%(asctime)s\t" + hostpid + "\t%(levelname)s\t%(message)s"
     formatter = logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S")
     handler.setFormatter(formatter)
     logging.root.addHandler(handler)
     logging.root.setLevel(level)
-    logging.info('system_details : system=%s' % platform.version())
-    logging.info('python : %s' % platform.python_version())
-    logging.info("user : %s" % os.environ['USER'])
-    logging.info("command_string : %s" % ' '.join(sys.argv))
+    logging.info("system_details : system=%s" % platform.version())
+    logging.info("python : %s" % platform.python_version())
+    logging.info("user : %s" % os.environ["USER"])
+    logging.info("command_string : %s" % " ".join(sys.argv))
     return handler
 
 
 def get_file_hexdigest(filename):
-    '''returns the md5 hexadecimal checksum of the file'''
+    """returns the md5 hexadecimal checksum of the file
+
+    NOTE
+    ----
+    The md5 sum of get_text_hexdigest can differ from get_file_hexdigest.
+    This will occur if the line ending character differs from being read in
+    'rb' versus 'r' modes.
+    """
     # from
     # http://stackoverflow.com/questions/1131220/get-md5-hash-of-big-files-in-python
-    with open(filename, 'rb') as infile:
+    with open(filename, "rb") as infile:
         md5 = hashlib.md5()
         while True:
             data = infile.read(128)
@@ -272,13 +279,13 @@ def get_text_hexdigest(data):
 
     NOTE
     ----
-    the md5 sum of get_text_hexdigest can differ from get_file_hexdigest.
+    The md5 sum of get_text_hexdigest can differ from get_file_hexdigest.
     This will occur if the line ending character differs from being read in
     'rb' versus 'r' modes.
     """
     if data.__class__ not in ("".__class__, u"".__class__):
         raise TypeError("can only checksum string or unicode data")
-    data = data.encode('utf-8')
+    data = data.encode("utf-8")
     md5 = hashlib.md5()
     md5.update(data)
     return md5.hexdigest()
