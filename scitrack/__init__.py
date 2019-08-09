@@ -6,6 +6,7 @@ import logging
 import hashlib
 import inspect
 import importlib
+from getpass import getuser
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016, Gavin Huttley"
@@ -243,7 +244,7 @@ def set_logger(log_file_path, level=logging.DEBUG, mode="w"):
     logging.root.setLevel(level)
     logging.info("system_details : system=%s" % platform.version())
     logging.info("python : %s" % platform.python_version())
-    logging.info("user : %s" % os.environ["USER"])
+    logging.info("user : %s" % getuser())
     logging.info("command_string : %s" % " ".join(sys.argv))
     return handler
 
