@@ -1,11 +1,11 @@
+import hashlib
+import importlib
+import inspect
+import logging
 import os
-import sys
 import platform
 import socket
-import logging
-import hashlib
-import inspect
-import importlib
+import sys
 from getpass import getuser
 
 __author__ = "Gavin Huttley"

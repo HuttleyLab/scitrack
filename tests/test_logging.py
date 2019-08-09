@@ -2,13 +2,12 @@
 
 import os
 import shutil
-from collections import Counter
 import subprocess
 import sys
-import os
+from collections import Counter
 
-from scitrack import (CachingLogger, logging, get_text_hexdigest,
-                      get_package_name, get_version_for_package)
+from scitrack import (CachingLogger, get_package_name, get_text_hexdigest,
+                      get_version_for_package, logging)
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016, Gavin Huttley"
@@ -80,15 +79,15 @@ def test_tracks_locals():
 def test_package_inference():
     """correctly identify the package name"""
     name = get_package_name(CachingLogger)
-    assert name == 'scitrack'
+    assert name == "scitrack"
 
 
 def test_package_versioning():
     """correctly identify versions for specified packages"""
-    vn = get_version_for_package('numpy')
+    vn = get_version_for_package("numpy")
     assert type(vn) is str
     try:  # not installed, but using valuerrror rather than import error
-        get_version_for_package('gobbledygook')
+        get_version_for_package("gobbledygook")
     except ValueError:
         pass
 
@@ -103,18 +102,18 @@ def test_tracks_versions():
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.log_file_path = os.path.join(LOGFILE_NAME)
     LOGGER.input_file("sample.fasta")
-    LOGGER.log_versions(['numpy'])
+    LOGGER.log_versions(["numpy"])
     LOGGER.shutdown()
     with open(LOGFILE_NAME, "r") as infile:
         contents = "".join(infile.readlines())
         for label in ["system_details", "python", "user", "command_string"]:
             assert contents.count(label) == 1, (label, contents.count(label))
         for line in contents.splitlines():
-            if 'version :' in line:
-                if 'numpy' not in line:
-                    assert '==%s' % __version__ in line, line
+            if "version :" in line:
+                if "numpy" not in line:
+                    assert "==%s" % __version__ in line, line
                 else:
-                    assert 'numpy' in line, line
+                    assert "numpy" in line, line
         print("\n\n", contents)
     try:
         os.remove(LOGFILE_NAME)
@@ -126,15 +125,16 @@ def test_tracks_versions_string():
     """should track version if package name is a string"""
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.log_file_path = os.path.join(LOGFILE_NAME)
-    LOGGER.log_versions('numpy')
+    LOGGER.log_versions("numpy")
     LOGGER.shutdown()
     import numpy
-    expect = 'numpy==%s' % numpy.__version__
-    del(numpy)
+
+    expect = "numpy==%s" % numpy.__version__
+    del numpy
     with open(LOGFILE_NAME, "r") as infile:
         contents = "".join(infile.readlines())
         for line in contents.splitlines():
-            if 'version :' in line and 'numpy' in line:
+            if "version :" in line and "numpy" in line:
                 assert expect in line, line
     try:
         os.remove(LOGFILE_NAME)
@@ -147,14 +147,15 @@ def test_tracks_versions_module():
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.log_file_path = os.path.join(LOGFILE_NAME)
     import numpy
-    expect = 'numpy==%s' % numpy.__version__
+
+    expect = "numpy==%s" % numpy.__version__
     LOGGER.log_versions(numpy)
     LOGGER.shutdown()
-    del(numpy)
+    del numpy
     with open(LOGFILE_NAME, "r") as infile:
         contents = "".join(infile.readlines())
         for line in contents.splitlines():
-            if 'version :' in line and 'numpy' in line:
+            if "version :" in line and "numpy" in line:
                 assert expect in line, line
     try:
         os.remove(LOGFILE_NAME)
