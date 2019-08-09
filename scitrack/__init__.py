@@ -72,12 +72,8 @@ def get_version_for_package(package):
     return vn
 
 
-try:
-    from mpiutils.dispatcher import checkmakedirs as create_path
-    from mpiutils.mpi_logging import MPIFileHandler as FileHandler
-except ImportError:
-    create_path = _create_path
-    FileHandler = logging.FileHandler
+create_path = _create_path
+FileHandler = logging.FileHandler
 
 
 class CachingLogger(object):

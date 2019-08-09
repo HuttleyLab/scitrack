@@ -44,6 +44,5 @@ setup(
             "Operating System :: OS Independent",
             ],
     packages=["scitrack"],
-    extras_require={"mpi": ["mpiutils", "mpi4py"]},
     url="https://bitbucket.org/gavin.huttley/scitrack",
     )

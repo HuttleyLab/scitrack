@@ -7,17 +7,6 @@ import subprocess
 import sys
 import os
 
-try:
-    from mpiutils.dispatcher import USING_MPI, barrier, size
-except ImportError:
-    USING_MPI = False
-
-    def rank(): return None
-
-    def barrier(): return None
-
-    def size(): return 1
-
 from scitrack import (CachingLogger, logging, get_text_hexdigest,
                       get_package_name, get_version_for_package)
 
@@ -40,7 +29,6 @@ def test_creates_path():
     LOGGER.log_file_path = os.path.join(DIRNAME, LOGFILE_NAME)
     LOGGER.input_file("sample.fasta")
     LOGGER.shutdown()
-    barrier()
     assert os.path.exists(DIRNAME)
     assert os.path.exists(os.path.join(DIRNAME, LOGFILE_NAME))
     try:
@@ -55,13 +43,10 @@ def test_tracks_args():
     LOGGER.log_file_path = os.path.join(LOGFILE_NAME)
     LOGGER.input_file("sample.fasta")
     LOGGER.shutdown()
-    barrier()
     with open(LOGFILE_NAME, "r") as infile:
         contents = "".join(infile.readlines())
         for label in ["system_details", "python", "user", "command_string"]:
-            assert contents.count(label) == size(
-            ), (label, contents.count(label))
-    barrier()
+            assert contents.count(label) == 1, (label, contents.count(label))
     try:
         os.remove(LOGFILE_NAME)
     except OSError:
@@ -78,7 +63,6 @@ def test_tracks_locals():
 
     track_func()
     LOGGER.shutdown()
-    barrier()
     with open(LOGFILE_NAME, "r") as infile:
         for line in infile:
             index = line.find("params :")
@@ -86,7 +70,6 @@ def test_tracks_locals():
                 got = eval(line.split("params :")[1])
                 break
     assert got == dict(a=1, b="abc")
-    barrier()
     try:
         os.remove(LOGFILE_NAME)
         pass
@@ -122,12 +105,10 @@ def test_tracks_versions():
     LOGGER.input_file("sample.fasta")
     LOGGER.log_versions(['numpy'])
     LOGGER.shutdown()
-    barrier()
     with open(LOGFILE_NAME, "r") as infile:
         contents = "".join(infile.readlines())
         for label in ["system_details", "python", "user", "command_string"]:
-            assert contents.count(label) == size(
-            ), (label, contents.count(label))
+            assert contents.count(label) == 1, (label, contents.count(label))
         for line in contents.splitlines():
             if 'version :' in line:
                 if 'numpy' not in line:
@@ -135,7 +116,6 @@ def test_tracks_versions():
                 else:
                     assert 'numpy' in line, line
         print("\n\n", contents)
-    barrier()
     try:
         os.remove(LOGFILE_NAME)
     except OSError:
@@ -151,13 +131,11 @@ def test_tracks_versions_string():
     import numpy
     expect = 'numpy==%s' % numpy.__version__
     del(numpy)
-    barrier()
     with open(LOGFILE_NAME, "r") as infile:
         contents = "".join(infile.readlines())
         for line in contents.splitlines():
             if 'version :' in line and 'numpy' in line:
                 assert expect in line, line
-    barrier()
     try:
         os.remove(LOGFILE_NAME)
     except OSError:
@@ -173,13 +151,11 @@ def test_tracks_versions_module():
     LOGGER.log_versions(numpy)
     LOGGER.shutdown()
     del(numpy)
-    barrier()
     with open(LOGFILE_NAME, "r") as infile:
         contents = "".join(infile.readlines())
         for line in contents.splitlines():
             if 'version :' in line and 'numpy' in line:
                 assert expect in line, line
-    barrier()
     try:
         os.remove(LOGFILE_NAME)
     except OSError:
@@ -203,7 +179,6 @@ def test_appending():
     LOGGER.log_file_path = LOGFILE_NAME
     LOGGER.input_file("sample.fasta")
     LOGGER.shutdown()
-    barrier()
 
     records = Counter()
     with open(LOGFILE_NAME) as infile:
@@ -225,7 +200,7 @@ def test_mdsum_input():
     LOGGER.log_file_path = os.path.join(LOGFILE_NAME)
     LOGGER.input_file("sample.fasta")
     LOGGER.shutdown()
-    barrier()
+
     with open(LOGFILE_NAME, "r") as infile:
         num = 0
         for line in infile:
@@ -233,9 +208,8 @@ def test_mdsum_input():
             if "input_file_path md5sum" in line:
                 assert "96eb2c2632bae19eb65ea9224aaafdad" in line
                 num += 1
-        assert num == size()
+        assert num == 1
 
-    barrier()
     try:
         os.remove(LOGFILE_NAME)
     except OSError:
