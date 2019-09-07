@@ -44,7 +44,7 @@ Simple instantiation of the logger
 
 Creating the logger. Setting ``create_dir=True`` means on creation of the logfile, the directory path will be created also.
 
-.. sourcecode :: python
+.. code:: python
 
     from scitrack import CachingLogger
     LOGGER = CachingLogger(create_dir=True)
@@ -61,7 +61,7 @@ Capturing a programs arguments and options
 
 Here's one approach when using the ``click`` `command line interface library <http://click.pocoo.org/>`_. Below we create a simple ``click`` app and capture the required and optional argument values.
 
-.. sourcecode :: python
+.. code:: python
 
     from scitrack import CachingLogger
     import click

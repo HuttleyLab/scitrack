@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from setuptools import setup
 import sys
+import pathlib
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016, Gavin Huttley"
@@ -17,9 +18,9 @@ if sys.version_info < (3, 6):
 
 short_description = "scitrack"
 
-long_description = """scitrack
-Lite-weight library to facilitate tracking scientific compute runs, version %s.
-""" % __version__
+readme_path = pathlib.Path(__file__).parent / "README.rst"
+
+long_description = readme_path.read_text()
 
 setup(
     name="scitrack",
