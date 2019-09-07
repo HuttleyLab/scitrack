@@ -12,9 +12,9 @@ __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "Development"
 
 # Check Python version, no point installing if unsupported version inplace
-if sys.version_info < (2, 7):
+if sys.version_info < (3, 6):
     py_version = ".".join([str(n) for n in sys.version_info])
-    raise RuntimeError("Python-2.7 or greater is required, Python-%s used." % py_version)
+    raise RuntimeError("Python-3.6 or greater is required, Python-%s used." % py_version)
 
 short_description = "scitrack"
 
@@ -36,7 +36,6 @@ setup(
     classifiers=[
             "Development Status :: 3 - Alpha",
             "Intended Audience :: Science/Research",
-            "Programming Language :: Python :: 2.7",
             "Programming Language :: Python :: 3",
             "License :: OSI Approved :: BSD License",
             "Topic :: Scientific/Engineering :: Bio-Informatics",
