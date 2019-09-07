@@ -11,14 +11,12 @@ __maintainer__ = "Gavin Huttley"
 __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "Development"
 
-# Check Python version, no point installing if unsupported version inplace
 if sys.version_info < (3, 6):
     py_version = ".".join([str(n) for n in sys.version_info])
     raise RuntimeError("Python-3.6 or greater is required, Python-%s used." % py_version)
 
 short_description = "scitrack"
 
-# This ends up displayed by the installer
 long_description = """scitrack
 Lite-weight library to facilitate tracking scientific compute runs, version %s.
 """ % __version__
