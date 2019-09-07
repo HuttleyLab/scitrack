@@ -89,8 +89,8 @@ Here's one approach when using the ``click`` `command line interface library <ht
 
 The ``CachingLogger.write()`` method takes a message and a label. All other logging methods wrap ``log_message()``, providing a specific label. For instance, the method ``input_file()`` writes out two lines in the log.
 
-    - input_file_path, the absolute path to the intput file
-    - input_file_path md5sum, the hex digest of the file
+- input_file_path, the absolute path to the intput file
+- input_file_path md5sum, the hex digest of the file
 
 ``output_file()`` behaves analogously. An additional method ``text_data()`` is useful for other data input/output sources (e.g. records from a database). For this to have value for arbitrary data types requires a systematic approach to ensuring the text conversion is robust across platforms.
 
