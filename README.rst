@@ -16,11 +16,11 @@ For the released version::
 
 For the very latest version::
 
-    $ pip install hg+ssh://hg@bitbucket.org/gavin.huttley/scitrack
+    $ pip install git+https://github.com/HuttleyLab/scitrack
 
 Or clone it::
 
-    $ hg clone ssh://hg@bitbucket.org/gavin.huttley/scitrack
+    $ git clone git@github.com:HuttleyLab/scitrack.git
 
 And then install::
 

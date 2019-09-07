@@ -44,5 +44,5 @@ setup(
             "Operating System :: OS Independent",
             ],
     packages=["scitrack"],
-    url="https://bitbucket.org/gavin.huttley/scitrack",
+    url="https://github.com/HuttleyLab/scitrack",
     )
