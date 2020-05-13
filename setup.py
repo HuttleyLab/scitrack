@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-from setuptools import setup
-import sys
 import pathlib
+import sys
+
+from setuptools import setup
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016, Gavin Huttley"
@@ -14,7 +15,9 @@ __status__ = "Development"
 
 if sys.version_info < (3, 6):
     py_version = ".".join([str(n) for n in sys.version_info])
-    raise RuntimeError("Python-3.6 or greater is required, Python-%s used." % py_version)
+    raise RuntimeError(
+        "Python-3.6 or greater is required, Python-%s used." % py_version
+    )
 
 short_description = "scitrack"
 
@@ -33,14 +36,14 @@ setup(
     license=[__license__],
     keywords=["science", "logging", "parallel"],
     classifiers=[
-            "Development Status :: 3 - Alpha",
-            "Intended Audience :: Science/Research",
-            "Programming Language :: Python :: 3",
-            "License :: OSI Approved :: BSD License",
-            "Topic :: Scientific/Engineering :: Bio-Informatics",
-            "Topic :: Software Development :: Libraries :: Python Modules",
-            "Operating System :: OS Independent",
-            ],
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Science/Research",
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: BSD License",
+        "Topic :: Scientific/Engineering :: Bio-Informatics",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Operating System :: OS Independent",
+    ],
     packages=["scitrack"],
     url="https://github.com/HuttleyLab/scitrack",
-    )
+)
