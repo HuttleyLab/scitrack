@@ -1,3 +1,7 @@
+.. image:: https://github.com/HuttleyLab/scitrack/workflows/CI/badge.svg?branch=develop
+ :target: https://github.com/HuttleyLab/scitrack/actions?workflow=CI
+ :alt: CI Status
+ 
 ##################
 About ``scitrack``
 ##################
