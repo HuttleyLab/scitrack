@@ -2,7 +2,7 @@
 import pathlib
 import sys
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016, Gavin Huttley"
@@ -25,6 +25,8 @@ readme_path = pathlib.Path(__file__).parent / "README.rst"
 
 long_description = readme_path.read_text()
 
+PACKAGE_DIR = "src"
+
 setup(
     name="scitrack",
     version=__version__,
@@ -34,16 +36,19 @@ setup(
     long_description=long_description,
     platforms=["any"],
     license=[__license__],
-    keywords=["science", "logging", "parallel"],
+    keywords=["science", "logging"],
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Science/Research",
-        "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD License",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
     ],
-    packages=["scitrack"],
+    packages=find_packages(where="src"),
+    package_dir={"": PACKAGE_DIR},
     url="https://github.com/HuttleyLab/scitrack",
 )

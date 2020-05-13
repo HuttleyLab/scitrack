@@ -2,12 +2,10 @@
 
 import os
 import shutil
-import subprocess
-import sys
 from collections import Counter
 
 from scitrack import (CachingLogger, get_package_name, get_text_hexdigest,
-                      get_version_for_package, logging)
+                      get_version_for_package)
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016, Gavin Huttley"
