@@ -1,0 +1,38 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ "develop" ]
+  pull_request:
+    branches: [ "develop" ]
+
+jobs:
+  tests:
+    name: "Python ${{ matrix.python-version }}"
+    runs-on: "macos-latest"
+    env:
+      USING_COVERAGE: '3.6,3.8'
+
+    strategy:
+      matrix:
+        python-version: ["3.6", "3.7", "3.8"]
+
+    steps:
+      - uses: "actions/checkout@v2"
+      - uses: "actions/setup-python@v1"
+        with:
+          python-version: "${{ matrix.python-version }}"
+      - name: "Install dependencies"
+        run: |
+          set -xe
+          python -VV
+          python -m site
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade pytest pytest-cov virtualenv tox tox-gh-actions
+
+      - name: "Run tox targets for ${{ matrix.python-version }}"
+        run: "python -m tox"
