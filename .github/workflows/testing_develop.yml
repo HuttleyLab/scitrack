@@ -15,12 +15,12 @@ jobs:
     name: "Python ${{ matrix.python-version }}"
     runs-on: ${{ matrix.os }}
     env:
-      USING_COVERAGE: '3.6,3.8'
+      USING_COVERAGE: '3.7,3.8'
 
     strategy:
       matrix:
         python-version: ["3.6", "3.7", "3.8"]
-        os: ["macos-latest", "ubuntu-latest", "windows-latest"]
+        os: ["macos-latest"]
 
     steps:
       - uses: "actions/checkout@v2"
