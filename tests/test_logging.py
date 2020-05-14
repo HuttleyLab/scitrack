@@ -197,17 +197,25 @@ def test_mdsum_input():
     """md5 sum of input file should be correct"""
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.log_file_path = os.path.join(LOGFILE_NAME)
+    # first file has LF, second has CRLF line endings
+    hex_path = [
+        ("96eb2c2632bae19eb65ea9224aaafdad", "sample.fasta"),
+        ("e7e219f66be15d8afc7cdb85303305a7", "sample-windows.fasta"),
+    ]
     LOGGER.input_file("sample.fasta")
+    LOGGER.input_file("sample-windows.fasta")
     LOGGER.shutdown()
 
     with open(LOGFILE_NAME, "r") as infile:
         num = 0
         for line in infile:
-            line = line.strip()
-            if "input_file_path md5sum" in line:
-                assert "96eb2c2632bae19eb65ea9224aaafdad" in line
-                num += 1
-        assert num == 1
+            for h, p in hex_path:
+                if p in line:
+                    line = next(infile)
+                    assert h in line
+                    num += 1
+
+        assert num == len(hex_path)
 
     try:
         os.remove(LOGFILE_NAME)
