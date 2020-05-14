@@ -245,7 +245,6 @@ def test_md5sum_text():
     ]
     for h, p in hex_path:
         p = TEST_ROOTDIR / p
-        with open(p, "rb") as p:
-            data = p.read()
+        data = p.read_bytes()
         got = get_text_hexdigest(data)
         assert got == h
