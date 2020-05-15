@@ -248,7 +248,7 @@ def test_md5sum_text():
         p = TEST_ROOTDIR / p
         data = p.read_bytes()
         got = get_text_hexdigest(data)
-        assert got == h
+        assert got == h, (p, repr(data))
 
 
 def test_read_from_written():
