@@ -255,10 +255,14 @@ def test_read_from_written():
     """create files with different line endings dynamically"""
     text = "abcdeENDedfguENDyhbndEND"
     with TemporaryDirectory(dir=TEST_ROOTDIR) as dirname:
-        for lf in ("\n", "\r\n"):
+        for ex, lf in (
+            ("dc17d7afa0a61519786f4bdf464107ff", "\n"),
+            ("01e8adf2ec04b9f1dbbef11de7e1c1c2", "\r\n"),
+        ):
             p = Path(dirname) / "test.txt"
             data = text.replace("END", lf)
             p.write_bytes(data.encode("utf-8"))
             expect = get_text_hexdigest(data)
+            assert expect == ex, (expect, ex)
             got = get_file_hexdigest(p)
-            assert got == expect, f"FAILED: {repr(lf)}"
+            assert got == expect, f"FAILED: {repr(lf)}, {(ex, got)}"
