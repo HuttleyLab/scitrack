@@ -254,11 +254,11 @@ def test_md5sum_text():
 
 def test_read_from_written():
     """create files with different line endings dynamically"""
-    text = "abcdeENDedfguENDyhbndEND"
+    text = "abcdeENDedfguENDyhbnd"
     with TemporaryDirectory(dir=TEST_ROOTDIR) as dirname:
         for ex, lf in (
-            ("dc17d7afa0a61519786f4bdf464107ff", "\n"),
-            ("01e8adf2ec04b9f1dbbef11de7e1c1c2", "\r\n"),
+            ("f06597f8a983dfc93744192b505a8af9", "\n"),
+            ("39db5cc2f7749f02e0c712a3ece12ffc", "\r\n"),
         ):
             p = Path(dirname) / "test.txt"
             data = text.replace("END", lf)
