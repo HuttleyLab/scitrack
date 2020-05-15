@@ -3,9 +3,10 @@
 import shutil
 from collections import Counter
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
-from scitrack import (CachingLogger, get_package_name, get_text_hexdigest,
-                      get_version_for_package)
+from scitrack import (CachingLogger, get_file_hexdigest, get_package_name,
+                      get_text_hexdigest, get_version_for_package)
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016, Gavin Huttley"
@@ -231,7 +232,7 @@ def test_mdsum_input():
 
 def test_md5sum_text():
     """md5 sum for text data should be computed"""
-    data = u"åbcde"
+    data = "åbcde"
     s = get_text_hexdigest(data)
     assert s
     data = "abcde"
@@ -248,3 +249,16 @@ def test_md5sum_text():
         data = p.read_bytes()
         got = get_text_hexdigest(data)
         assert got == h
+
+
+def test_read_from_written():
+    """create files with different line endings dynamically"""
+    text = "abcdeENDedfguENDyhbndEND"
+    with TemporaryDirectory(dir=TEST_ROOTDIR) as dirname:
+        for lf in ("\n", "\r\n"):
+            p = Path(dirname) / "test.txt"
+            data = text.replace("END", lf)
+            p.write_bytes(data.encode("utf-8"))
+            expect = get_text_hexdigest(data)
+            got = get_file_hexdigest(p)
+            assert got == expect, f"FAILED: {repr(lf)}"
