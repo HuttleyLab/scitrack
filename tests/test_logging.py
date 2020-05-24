@@ -27,7 +27,7 @@ def test_creates_path():
     """creates a log path"""
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.log_file_path = LOGFILE_NAME
-    LOGGER.input_file(TEST_ROOTDIR / "sample.fasta")
+    LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
     LOGGER.shutdown()
     assert DIRNAME.exists()
     assert LOGFILE_NAME.exists()
@@ -42,7 +42,7 @@ def test_tracks_args():
     """details on host, python version should be present in log"""
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.log_file_path = LOGFILE_NAME
-    LOGGER.input_file(TEST_ROOTDIR / "sample.fasta")
+    LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
     LOGGER.shutdown()
     with open(LOGFILE_NAME, "r") as infile:
         contents = "".join(infile.readlines())
@@ -104,7 +104,7 @@ def test_tracks_versions():
     """should track versions"""
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.log_file_path = LOGFILE_NAME
-    LOGGER.input_file(TEST_ROOTDIR / "sample.fasta")
+    LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
     LOGGER.log_versions(["numpy"])
     LOGGER.shutdown()
     with open(LOGFILE_NAME, "r") as infile:
@@ -172,7 +172,7 @@ def test_appending():
     """appending to an existing logfile should work"""
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.log_file_path = LOGFILE_NAME
-    LOGGER.input_file(TEST_ROOTDIR / "sample.fasta")
+    LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
     LOGGER.shutdown()
     records = Counter()
     with open(LOGFILE_NAME) as infile:
@@ -183,7 +183,7 @@ def test_appending():
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.mode = "a"
     LOGGER.log_file_path = LOGFILE_NAME
-    LOGGER.input_file(TEST_ROOTDIR / "sample.fasta")
+    LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
     LOGGER.shutdown()
 
     records = Counter()
@@ -206,10 +206,10 @@ def test_mdsum_input():
     LOGGER.log_file_path = LOGFILE_NAME
     # first file has LF, second has CRLF line endings
     hex_path = [
-        ("96eb2c2632bae19eb65ea9224aaafdad", "sample.fasta"),
+        ("96eb2c2632bae19eb65ea9224aaafdad", "sample-lf.fasta"),
         ("e7e219f66be15d8afc7cdb85303305a7", "sample-crlf.fasta"),
     ]
-    LOGGER.input_file(TEST_ROOTDIR / "sample.fasta")
+    LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
     LOGGER.input_file(TEST_ROOTDIR / "sample-crlf.fasta")
     LOGGER.shutdown()
 
