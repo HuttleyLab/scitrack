@@ -280,9 +280,12 @@ def get_text_hexdigest(data):
     This will occur if the line ending character differs from being read in
     'rb' versus 'r' modes.
     """
-    if data.__class__ not in ("".__class__, u"".__class__):
-        raise TypeError("can only checksum string or unicode data")
-    data = data.encode("utf-8")
+    data_class = data.__class__
+    if data_class in ("".__class__, u"".__class__):
+        data = data.encode("utf-8")
+    elif data.__class__ != b"".__class__:
+        raise TypeError("can only checksum string, unicode or bytes data")
+
     md5 = hashlib.md5()
     md5.update(data)
     return md5.hexdigest()
