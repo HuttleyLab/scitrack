@@ -26,6 +26,7 @@ pip-log.txt
 .tox
 nosetests.xml
 tests/draw_results
+*.pytest_cache
 
 # Translations
 *.mo
