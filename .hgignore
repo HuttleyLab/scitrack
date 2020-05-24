@@ -22,3 +22,4 @@ scitrack.egg*
 *.sublime-*
 *.wpu
 *.pytest_cache
+*.tox
