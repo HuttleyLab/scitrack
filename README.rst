@@ -40,8 +40,6 @@ In addition, the class provides convenience methods for logging both the path an
 
 All logging calls are cached until a path for a logfile is provided. The logger can also, optionally, create directories.
 
-When run in parallel using ``mpirun``, the process ID is appended to the hostname to help identify processors.
-
 **********************************
 Simple instantiation of the logger
 **********************************
@@ -53,7 +51,6 @@ Creating the logger. Setting ``create_dir=True`` means on creation of the logfil
     from scitrack import CachingLogger
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.log_file_path = "somedir/some_path.log"
-    
 
 The last assignment triggers creation of ``somedir/some_path.log``.
 
@@ -121,4 +118,4 @@ Some sample output
 Other useful functions
 **********************
 
-Two other useful functions are ``get_file_hexdigest`` and ``get_text_hexdigest``. The latter can take either unicode or ascii strings.
+Two other useful functions are ``get_file_hexdigest`` and ``get_text_hexdigest``.
