@@ -252,6 +252,21 @@ def test_md5sum_text():
         assert got == h, (p, repr(data))
 
 
+def test_md5sum_blankline_text():
+    """md5 sum for files ending empty line"""
+    # loading contents from files with diff line-endings and check
+    hex_path = [
+        ("be1daa601f8308075eba115a47e20474", "sample-blankend-lf.fasta"),
+        ("dc868bcba96d0cf667c6bbb7d6ba71c8", "sample-blankend-crlf.fasta"),
+    ]
+    for h, p in hex_path:
+        p = TEST_ROOTDIR / p
+        data = p.read_bytes()
+        print(p, repr(data))
+        got = get_text_hexdigest(data)
+        assert got == h, (p, repr(data))
+
+
 def test_read_from_written():
     """create files with different line endings dynamically"""
     text = "abcdeENDedfguENDyhbnd"
