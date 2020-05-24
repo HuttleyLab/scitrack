@@ -35,5 +35,5 @@ jobs:
       - name: Upload py3.8 coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
-          file: ./tests/junit-py38.xml
+          file: ./tests/junit-*.xml
           fail_ci_if_error: true
