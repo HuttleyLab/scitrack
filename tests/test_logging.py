@@ -5,8 +5,8 @@ from collections import Counter
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from scitrack import (CachingLogger, get_package_name, get_text_hexdigest,
-                      get_version_for_package)
+from scitrack import (CachingLogger, get_file_hexdigest, get_package_name,
+                      get_text_hexdigest, get_version_for_package)
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016, Gavin Huttley"
@@ -238,3 +238,32 @@ def test_md5sum_text():
     data = "abcde"
     s = get_text_hexdigest(data)
     assert s
+
+    # loading contents from files with diff line-endings and check
+    hex_path = [
+        ("96eb2c2632bae19eb65ea9224aaafdad", "sample-lf.fasta"),
+        ("e7e219f66be15d8afc7cdb85303305a7", "sample-crlf.fasta"),
+    ]
+    for h, p in hex_path:
+        p = TEST_ROOTDIR / p
+        data = p.read_bytes()
+        print(p, repr(data))
+        got = get_text_hexdigest(data)
+        assert got == h, (p, repr(data))
+
+
+def test_read_from_written():
+    """create files with different line endings dynamically"""
+    text = "abcdeENDedfguENDyhbnd"
+    with TemporaryDirectory(dir=TEST_ROOTDIR) as dirname:
+        for ex, lf in (
+            ("f06597f8a983dfc93744192b505a8af9", "\n"),
+            ("39db5cc2f7749f02e0c712a3ece12ffc", "\r\n"),
+        ):
+            p = Path(dirname) / "test.txt"
+            data = text.replace("END", lf)
+            p.write_bytes(data.encode("utf-8"))
+            expect = get_text_hexdigest(data)
+            assert expect == ex, (expect, ex)
+            got = get_file_hexdigest(p)
+            assert got == expect, f"FAILED: {repr(lf)}, {(ex, got)}"
