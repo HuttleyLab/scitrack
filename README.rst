@@ -1,7 +1,17 @@
-.. image:: https://github.com/HuttleyLab/scitrack/workflows/CI/badge.svg?branch=develop
+|Build Status| |codecov| |Using Black Formatting| |Python 3.6+|
+
+.. |Build Status|  image:: https://github.com/HuttleyLab/scitrack/workflows/CI/badge.svg?branch=develop
  :target: https://github.com/HuttleyLab/scitrack/actions?workflow=CI
  :alt: CI Status
- 
+
+.. |codecov|  image:: https://codecov.io/gh/GavinHuttley/scitrack/branch/develop/graph/badge.svg
+  :target: https://codecov.io/gh/GavinHuttley/scitrack
+
+.. |Using Black Formatting| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+.. |Python 3.6+| image:: https://img.shields.io/badge/python-3.6+-blue.svg
+    :target: https://www.python.org/downloads/release/python-360/
+
+
 ##################
 About ``scitrack``
 ##################
