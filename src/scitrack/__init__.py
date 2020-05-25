@@ -6,7 +6,9 @@ import os
 import platform
 import socket
 import sys
+
 from getpass import getuser
+
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016, Gavin Huttley"

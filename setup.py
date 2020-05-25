@@ -4,6 +4,7 @@ import sys
 
 from setuptools import find_packages, setup
 
+
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016, Gavin Huttley"
 __credits__ = ["Gavin Huttley"]
@@ -34,6 +35,7 @@ setup(
     author_email="gavin.huttley@anu.edu.au",
     description=short_description,
     long_description=long_description,
+    long_description_content_type="text/x-rst",
     platforms=["any"],
     license=[__license__],
     keywords=["science", "logging"],

@@ -1,14 +1,21 @@
 # -*- coding: utf-8 -*-
 import shutil
 import sys
+
 from collections import Counter
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import pytest
 
-from scitrack import (CachingLogger, get_file_hexdigest, get_package_name,
-                      get_text_hexdigest, get_version_for_package)
+from scitrack import (
+    CachingLogger,
+    get_file_hexdigest,
+    get_package_name,
+    get_text_hexdigest,
+    get_version_for_package,
+)
+
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016, Gavin Huttley"
@@ -48,7 +55,10 @@ def test_tracks_args():
     LOGGER.shutdown()
     contents = LOGFILE_NAME.read_text()
     for label in ["system_details", "python", "user", "command_string"]:
-        assert contents.count(f"\t{label}") == 1, (label, contents.count(label))
+        assert contents.count(f"\t{label}") == 1, (
+            label,
+            contents.count(label),
+        )
 
     try:
         shutil.rmtree(DIRNAME)
@@ -110,7 +120,10 @@ def test_tracks_versions():
     LOGGER.shutdown()
     contents = LOGFILE_NAME.read_text()
     for label in ["system_details", "python", "user", "command_string"]:
-        assert contents.count(f"\t{label}") == 1, (label, contents.count(label))
+        assert contents.count(f"\t{label}") == 1, (
+            label,
+            contents.count(label),
+        )
     for line in contents.splitlines():
         if "version :" in line:
             if "numpy" not in line:
@@ -163,7 +176,10 @@ def test_tracks_versions_empty():
     LOGGER.shutdown()
     contents = LOGFILE_NAME.read_text()
     for label in ["system_details", "python", "user", "command_string"]:
-        assert contents.count(f"\t{label}") == 1, (label, contents.count(label))
+        assert contents.count(f"\t{label}") == 1, (
+            label,
+            contents.count(label),
+        )
     for line in contents.splitlines():
         if "version :" in line:
             assert "==%s" % __version__ in line, line
