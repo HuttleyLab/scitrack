@@ -5,6 +5,8 @@ from collections import Counter
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import pytest
+
 from scitrack import (CachingLogger, get_file_hexdigest, get_package_name,
                       get_text_hexdigest, get_version_for_package)
 
@@ -268,6 +270,15 @@ def test_md5sum_text():
         print(p, repr(data))
         got = get_text_hexdigest(data)
         assert got == h, (p, repr(data))
+
+
+def test_get_text_hexdigest_invalid():
+    """raises TypeError when invalid data provided"""
+    with pytest.raises(TypeError):
+        get_text_hexdigest(None)
+
+    with pytest.raises(TypeError):
+        get_text_hexdigest([])
 
 
 def test_read_from_written():
