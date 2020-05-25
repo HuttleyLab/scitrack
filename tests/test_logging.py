@@ -44,10 +44,9 @@ def test_tracks_args():
     LOGGER.log_file_path = LOGFILE_NAME
     LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
     LOGGER.shutdown()
-    with open(LOGFILE_NAME, "r") as infile:
-        contents = "".join(infile.readlines())
-        for label in ["system_details", "python", "user", "command_string"]:
-            assert contents.count(label) == 1, (label, contents.count(label))
+    contents = LOGFILE_NAME.read_text()
+    for label in ["system_details", "python", "user", "command_string"]:
+        assert contents.count(f"\t{label}") == 1, (label, contents.count(label))
 
     try:
         shutil.rmtree(DIRNAME)
@@ -107,16 +106,20 @@ def test_tracks_versions():
     LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
     LOGGER.log_versions(["numpy"])
     LOGGER.shutdown()
-    with open(LOGFILE_NAME, "r") as infile:
-        contents = "".join(infile.readlines())
-        for label in ["system_details", "python", "user", "command_string"]:
-            assert contents.count(label) == 1, (label, contents.count(label))
-        for line in contents.splitlines():
-            if "version :" in line:
-                if "numpy" not in line:
-                    assert "==%s" % __version__ in line, line
-                else:
-                    assert "numpy" in line, line
+    contents = LOGFILE_NAME.read_text()
+    for label in ["system_details", "python", "user", "command_string"]:
+        assert contents.count(f"\t{label}") == 1, (label, contents.count(label))
+    for line in contents.splitlines():
+        if "version :" in line:
+            if "numpy" not in line:
+                assert "==%s" % __version__ in line, line
+            else:
+                assert "numpy" in line, line
+
+    try:
+        shutil.rmtree(DIRNAME)
+    except OSError:
+        pass
 
     try:
         shutil.rmtree(DIRNAME)
