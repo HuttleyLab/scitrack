@@ -34,6 +34,7 @@ setup(
     author_email="gavin.huttley@anu.edu.au",
     description=short_description,
     long_description=long_description,
+    long_description_content_type="text/x-rst",
     platforms=["any"],
     license=[__license__],
     keywords=["science", "logging"],
