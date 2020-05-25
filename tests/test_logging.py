@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-
 import shutil
+import sys
 from collections import Counter
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -124,6 +124,36 @@ def test_tracks_versions():
         pass
 
 
+def test_caching():
+    """should cache calls prior to logging"""
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
+    assert (
+        "sample-lf.fasta" in LOGGER._messages[-2] and "md5sum" in LOGGER._messages[-1]
+    )
+    LOGGER.log_versions(["numpy"])
+    assert "numpy==" in LOGGER._messages[-1]
+
+    LOGGER.log_file_path = LOGFILE_NAME
+    LOGGER.shutdown()
+    try:
+        shutil.rmtree(DIRNAME)
+    except OSError:
+        pass
+
+
+def test_shutdown():
+    """correctly purges contents"""
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = LOGFILE_NAME
+    LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
+    LOGGER.shutdown()
+    try:
+        shutil.rmtree(DIRNAME)
+    except OSError:
+        pass
+
+
 def test_tracks_versions_empty():
     """should track version of scitrack"""
     LOGGER = CachingLogger(create_dir=True)
@@ -164,6 +194,31 @@ def test_tracks_versions_string():
         shutil.rmtree(DIRNAME)
     except OSError:
         pass
+
+
+def test_get_version_for_package():
+    """should track version if package is a module"""
+    import numpy
+
+    got = get_version_for_package(numpy)
+    assert got == numpy.__version__
+    # one with a callable
+    pyfile = TEST_ROOTDIR / "delme.py"
+    pyfile.write_text("\n".join(["def version():", "  return 'my-version'"]))
+    sys.path.append(TEST_ROOTDIR)
+    import delme
+
+    got = get_version_for_package("delme")
+    assert got == "my-version"
+    pyfile.unlink()
+
+    # func returns a list
+    pyfile.write_text("version = ['my-version']\n")
+    from importlib import reload
+
+    got = get_version_for_package(reload(delme))
+    assert got == "my-version"
+    pyfile.unlink()
 
 
 def test_tracks_versions_module():
@@ -238,12 +293,73 @@ def test_mdsum_input():
         for line in infile:
             for h, p in hex_path:
                 if p in line:
+                    assert "input_file" in line
                     line = next(infile)
                     assert h in line
                     num += 1
 
         assert num == len(hex_path)
 
+    try:
+        shutil.rmtree(DIRNAME)
+    except OSError:
+        pass
+
+
+def test_mdsum_output():
+    """md5 sum of output file should be correct"""
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = LOGFILE_NAME
+    # first file has LF, second has CRLF line endings
+    hex_path = [
+        ("96eb2c2632bae19eb65ea9224aaafdad", "sample-lf.fasta"),
+    ]
+    LOGGER.output_file(TEST_ROOTDIR / "sample-lf.fasta")
+    LOGGER.shutdown()
+
+    with open(LOGFILE_NAME, "r") as infile:
+        num = 0
+        for line in infile:
+            for h, p in hex_path:
+                if p in line:
+                    line = next(infile)
+                    assert h in line
+                    num += 1
+
+        assert num == len(hex_path)
+
+    try:
+        shutil.rmtree(DIRNAME)
+    except OSError:
+        pass
+
+
+def test_logging_text():
+    """correctly logs text data"""
+    text = "abcde\nedfgu\nyhbnd"
+    hexd = "f06597f8a983dfc93744192b505a8af9"
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = LOGFILE_NAME
+    LOGGER.text_data(text, label="UNIQUE")
+    LOGGER.shutdown()
+    contents = LOGFILE_NAME.read_text().splitlines()
+    unique = None
+    for line in contents:
+        if "UNIQUE" in line:
+            unique = line
+            break
+    assert hexd in unique
+    try:
+        shutil.rmtree(DIRNAME)
+    except OSError:
+        pass
+
+
+def test_logfile_path():
+    """correctly assigned"""
+    LOGGER = CachingLogger(create_dir=True, log_file_path=LOGFILE_NAME)
+    assert LOGGER.log_file_path == str(LOGFILE_NAME)
+    LOGGER.shutdown()
     try:
         shutil.rmtree(DIRNAME)
     except OSError:

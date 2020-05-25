@@ -93,13 +93,15 @@ class CachingLogger(object):
             self.log_file_path = log_file_path
 
     def _reset(self, mode="w"):
-        self._log_file_path = None
         self._mode = mode
         self._started = False
         self._messages = []
         if self._logfile is not None:
+            self._logfile.flush()
             self._logfile.close()
             self._logfile = None
+
+        self._log_file_path = None
 
     @property
     def log_file_path(self):
@@ -196,9 +198,6 @@ class CachingLogger(object):
     def shutdown(self):
         """safely shutdown the logger"""
         logging.getLogger().removeHandler(self._logfile)
-        self._logfile.flush()
-        self._logfile.close()
-        self._logfile = None
         self._reset()
 
     def log_versions(self, packages=None):
