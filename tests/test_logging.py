@@ -142,8 +142,7 @@ def test_caching():
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
     assert (
-        "sample-lf.fasta" in LOGGER._messages[-2]
-        and "md5sum" in LOGGER._messages[-1]
+        "sample-lf.fasta" in LOGGER._messages[-2] and "md5sum" in LOGGER._messages[-1]
     )
     LOGGER.log_versions(["numpy"])
     assert "numpy==" in LOGGER._messages[-1]
