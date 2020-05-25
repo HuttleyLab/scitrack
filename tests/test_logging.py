@@ -121,6 +121,21 @@ def test_tracks_versions():
     except OSError:
         pass
 
+
+def test_tracks_versions_empty():
+    """should track version of scitrack"""
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = LOGFILE_NAME
+    LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
+    LOGGER.log_versions()
+    LOGGER.shutdown()
+    contents = LOGFILE_NAME.read_text()
+    for label in ["system_details", "python", "user", "command_string"]:
+        assert contents.count(f"\t{label}") == 1, (label, contents.count(label))
+    for line in contents.splitlines():
+        if "version :" in line:
+            assert "==%s" % __version__ in line, line
+
     try:
         shutil.rmtree(DIRNAME)
     except OSError:
