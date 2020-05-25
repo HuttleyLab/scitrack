@@ -1,14 +1,21 @@
 # -*- coding: utf-8 -*-
 import shutil
 import sys
+
 from collections import Counter
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import pytest
 
-from scitrack import (CachingLogger, get_file_hexdigest, get_package_name,
-                      get_text_hexdigest, get_version_for_package)
+from scitrack import (
+    CachingLogger,
+    get_file_hexdigest,
+    get_package_name,
+    get_text_hexdigest,
+    get_version_for_package,
+)
+
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016, Gavin Huttley"
