@@ -20,6 +20,12 @@ if sys.version_info < (3, 6):
         "Python-3.6 or greater is required, Python-%s used." % py_version
     )
 
+PROJECT_URLS = {
+    "Documentation": "https://github.com/HuttleyLab/scitrack",
+    "Bug Tracker": "https://github.com/HuttleyLab/scitrack/issues",
+    "Source Code": "https://github.com/HuttleyLab/scitrack",
+}
+
 short_description = "scitrack"
 
 readme_path = pathlib.Path(__file__).parent / "README.rst"
@@ -53,4 +59,5 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": PACKAGE_DIR},
     url="https://github.com/HuttleyLab/scitrack",
+    project_urls=PROJECT_URLS,
 )
