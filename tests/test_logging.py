@@ -48,7 +48,10 @@ def test_tracks_args():
     LOGGER.shutdown()
     contents = LOGFILE_NAME.read_text()
     for label in ["system_details", "python", "user", "command_string"]:
-        assert contents.count(f"\t{label}") == 1, (label, contents.count(label))
+        assert contents.count(f"\t{label}") == 1, (
+            label,
+            contents.count(label),
+        )
 
     try:
         shutil.rmtree(DIRNAME)
@@ -110,7 +113,10 @@ def test_tracks_versions():
     LOGGER.shutdown()
     contents = LOGFILE_NAME.read_text()
     for label in ["system_details", "python", "user", "command_string"]:
-        assert contents.count(f"\t{label}") == 1, (label, contents.count(label))
+        assert contents.count(f"\t{label}") == 1, (
+            label,
+            contents.count(label),
+        )
     for line in contents.splitlines():
         if "version :" in line:
             if "numpy" not in line:
@@ -129,7 +135,8 @@ def test_caching():
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
     assert (
-        "sample-lf.fasta" in LOGGER._messages[-2] and "md5sum" in LOGGER._messages[-1]
+        "sample-lf.fasta" in LOGGER._messages[-2]
+        and "md5sum" in LOGGER._messages[-1]
     )
     LOGGER.log_versions(["numpy"])
     assert "numpy==" in LOGGER._messages[-1]
@@ -163,7 +170,10 @@ def test_tracks_versions_empty():
     LOGGER.shutdown()
     contents = LOGFILE_NAME.read_text()
     for label in ["system_details", "python", "user", "command_string"]:
-        assert contents.count(f"\t{label}") == 1, (label, contents.count(label))
+        assert contents.count(f"\t{label}") == 1, (
+            label,
+            contents.count(label),
+        )
     for line in contents.splitlines():
         if "version :" in line:
             assert "==%s" % __version__ in line, line
