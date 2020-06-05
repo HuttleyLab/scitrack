@@ -11,7 +11,7 @@ from getpass import getuser
 
 
 __author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2016, Gavin Huttley"
+__copyright__ = "Copyright 2016-2020, Gavin Huttley"
 __credits__ = ["Gavin Huttley"]
 __license__ = "BSD"
 __version__ = "0.1.8.1"
