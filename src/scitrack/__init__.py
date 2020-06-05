@@ -6,13 +6,15 @@ import os
 import platform
 import socket
 import sys
+
 from getpass import getuser
 
+
 __author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2016, Gavin Huttley"
+__copyright__ = "Copyright 2016-2020, Gavin Huttley"
 __credits__ = ["Gavin Huttley"]
 __license__ = "BSD"
-__version__ = "0.1.8.1"
+__version__ = "2020.6.5"
 __maintainer__ = "Gavin Huttley"
 __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "Development"
@@ -93,13 +95,15 @@ class CachingLogger(object):
             self.log_file_path = log_file_path
 
     def _reset(self, mode="w"):
-        self._log_file_path = None
         self._mode = mode
         self._started = False
         self._messages = []
         if self._logfile is not None:
+            self._logfile.flush()
             self._logfile.close()
             self._logfile = None
+
+        self._log_file_path = None
 
     @property
     def log_file_path(self):
@@ -196,9 +200,6 @@ class CachingLogger(object):
     def shutdown(self):
         """safely shutdown the logger"""
         logging.getLogger().removeHandler(self._logfile)
-        self._logfile.flush()
-        self._logfile.close()
-        self._logfile = None
         self._reset()
 
     def log_versions(self, packages=None):
@@ -280,9 +281,12 @@ def get_text_hexdigest(data):
     This will occur if the line ending character differs from being read in
     'rb' versus 'r' modes.
     """
-    if data.__class__ not in ("".__class__, u"".__class__):
-        raise TypeError("can only checksum string or unicode data")
-    data = data.encode("utf-8")
+    data_class = data.__class__
+    if data_class in ("".__class__, u"".__class__):
+        data = data.encode("utf-8")
+    elif data.__class__ != b"".__class__:
+        raise TypeError("can only checksum string, unicode or bytes data")
+
     md5 = hashlib.md5()
     md5.update(data)
     return md5.hexdigest()
