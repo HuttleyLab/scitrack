@@ -4,8 +4,8 @@
  :target: https://github.com/HuttleyLab/scitrack/actions?workflow=CI
  :alt: CI Status
 
-.. |codecov|  image:: https://codecov.io/gh/GavinHuttley/scitrack/branch/develop/graph/badge.svg
-  :target: https://codecov.io/gh/GavinHuttley/scitrack
+.. |codecov|  image:: https://codecov.io/gh/HuttleyLab/scitrack/branch/develop/graph/badge.svg
+  :target: https://codecov.io/gh/HuttleyLab/scitrack
 
 .. |Using Black Formatting| image:: https://img.shields.io/badge/code%20style-black-000000.svg
 .. |Python 3.6+| image:: https://img.shields.io/badge/python-3.6+-blue.svg
