@@ -1,3 +1,6 @@
+"""
+SciTrack provides basic logging capabilities to track scientific computations.
+"""
 import hashlib
 import importlib
 import inspect

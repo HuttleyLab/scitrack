@@ -141,4 +141,20 @@ Reporting issues
 
 Use the project `issue tracker <https://github.com/HuttleyLab/scitrack/issues>`_.
 
+**************
+For Developers
+**************
+
+We use flit_ for package building. Having cloned the repository onto your machine. Install ``flit``::
+
+$ python3 -m pip install flit
+
+Do a developer install using flit as::
+
+$ cd path/to/cloned/repo
+$ flit install -s --python `which python`
+
+.. note:: This installs a symlink into ``site-packages`` of the python identified by ``which python``.
+
 .. [1] The hexdigest serves as a unique signature of a files contents.
+.. _flit: https://flit.readthedocs.io/en/latest/
