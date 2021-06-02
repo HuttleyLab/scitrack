@@ -66,6 +66,10 @@ Creating the logger. Setting ``create_dir=True`` means on creation of the logfil
 
 The last assignment triggers creation of ``somedir/some_path.log``.
 
+.. warning::
+
+    Once set, a loggers ``.log_file_path`` cannot be changed.
+
 ******************************************
 Capturing a programs arguments and options
 ******************************************
