@@ -153,7 +153,7 @@ We use flit_ for package building. Having cloned the repository onto your machin
 
 $ python3 -m pip install flit
 
-Do a developer install using flit as::
+Do a developer install of ``scitrack`` using flit as::
 
 $ cd path/to/cloned/repo
 $ flit install -s --python `which python`
