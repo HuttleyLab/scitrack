@@ -78,6 +78,10 @@ Capturing a programs arguments and options
 
 Here's one approach to incorporating ``scitrack`` into a command line application built using the ``click`` `command line interface library <http://click.pocoo.org/>`_. Below we create a simple ``click`` app and capture the required and optional argument values.
 
+.. note::
+
+    ``LOGGER.log_args()`` should be called immediately after the function definition, or after "true" default values have been configured.
+
 .. code:: python
 
     import click
