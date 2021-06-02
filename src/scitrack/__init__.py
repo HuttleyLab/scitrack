@@ -282,11 +282,12 @@ def get_text_hexdigest(data):
     'rb' versus 'r' modes.
     """
     data_class = data.__class__
+    # fmt: off
     if data_class in ("".__class__, u"".__class__):
         data = data.encode("utf-8")
     elif data.__class__ != b"".__class__:
         raise TypeError("can only checksum string, unicode or bytes data")
-
+    # fmt: on
     md5 = hashlib.md5()
     md5.update(data)
     return md5.hexdigest()
