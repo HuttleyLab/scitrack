@@ -18,7 +18,7 @@ from scitrack import (
 
 
 __author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2016-2020, Gavin Huttley"
+__copyright__ = "Copyright 2016-2021, Gavin Huttley"
 __credits__ = ["Gavin Huttley"]
 __license__ = "BSD"
 __version__ = "2020.6.5"
