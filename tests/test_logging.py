@@ -47,6 +47,18 @@ def test_creates_path():
         pass
 
 
+def test_set_path_if_exists():
+    """cannot change an existing logging path"""
+    with TemporaryDirectory(dir=".") as dirname:
+        dirname = Path(dirname)
+        LOGGER = CachingLogger(create_dir=True)
+        LOGGER.log_file_path = dirname / LOGFILE_NAME
+        LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
+        with pytest.raises(AttributeError):
+            LOGGER.log_file_path = dirname / "invalid.log"
+        LOGGER.shutdown()
+
+
 def test_tracks_args():
     """details on host, python version should be present in log"""
     LOGGER = CachingLogger(create_dir=True)

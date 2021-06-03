@@ -1,3 +1,6 @@
+"""
+SciTrack provides basic logging capabilities to track scientific computations.
+"""
 import hashlib
 import importlib
 import inspect
@@ -112,6 +115,11 @@ class CachingLogger(object):
     @log_file_path.setter
     def log_file_path(self, path):
         """set the log file path and then dump cached log messages"""
+        if self._log_file_path is not None:
+            raise AttributeError(
+                f"log_file_path already defined as {self._log_file_path}"
+            )
+
         path = abspath(path)
         if self.create_dir:
             dirname = os.path.dirname(path)
@@ -282,11 +290,12 @@ def get_text_hexdigest(data):
     'rb' versus 'r' modes.
     """
     data_class = data.__class__
+    # fmt: off
     if data_class in ("".__class__, u"".__class__):
         data = data.encode("utf-8")
     elif data.__class__ != b"".__class__:
         raise TypeError("can only checksum string, unicode or bytes data")
-
+    # fmt: on
     md5 = hashlib.md5()
     md5.update(data)
     return md5.hexdigest()
