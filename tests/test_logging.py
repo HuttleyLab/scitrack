@@ -18,10 +18,10 @@ from scitrack import (
 
 
 __author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2016-2020, Gavin Huttley"
+__copyright__ = "Copyright 2016-2021, Gavin Huttley"
 __credits__ = ["Gavin Huttley"]
 __license__ = "BSD"
-__version__ = "2020.6.5"
+__version__ = "2021.5.3"
 __maintainer__ = "Gavin Huttley"
 __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "Development"
@@ -45,6 +45,18 @@ def test_creates_path():
         shutil.rmtree(DIRNAME)
     except OSError:
         pass
+
+
+def test_set_path_if_exists():
+    """cannot change an existing logging path"""
+    with TemporaryDirectory(dir=".") as dirname:
+        dirname = Path(dirname)
+        LOGGER = CachingLogger(create_dir=True)
+        LOGGER.log_file_path = dirname / LOGFILE_NAME
+        LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
+        with pytest.raises(AttributeError):
+            LOGGER.log_file_path = dirname / "invalid.log"
+        LOGGER.shutdown()
 
 
 def test_tracks_args():

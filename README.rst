@@ -66,6 +66,10 @@ Creating the logger. Setting ``create_dir=True`` means on creation of the logfil
 
 The last assignment triggers creation of ``somedir/some_path.log``.
 
+.. warning::
+
+    Once set, a loggers ``.log_file_path`` cannot be changed.
+
 ******************************************
 Capturing a programs arguments and options
 ******************************************
@@ -73,6 +77,10 @@ Capturing a programs arguments and options
 ``scitrack`` will write the contents of ``sys.argv`` to the log file, prefixed by ``command_string``. However, this only captures arguments specified on the command line. Tracking the value of optional arguments not specified, which may have default values, is critical to tracking the full command set. Doing this is now easy with the simple statement ``LOGGER.log_args()``. The logger can also record the versions of named dependencies.
 
 Here's one approach to incorporating ``scitrack`` into a command line application built using the ``click`` `command line interface library <http://click.pocoo.org/>`_. Below we create a simple ``click`` app and capture the required and optional argument values.
+
+.. note::
+
+    ``LOGGER.log_args()`` should be called immediately after the function definition, or after "true" default values have been configured.
 
 .. code:: python
 
@@ -137,4 +145,20 @@ Reporting issues
 
 Use the project `issue tracker <https://github.com/HuttleyLab/scitrack/issues>`_.
 
+**************
+For Developers
+**************
+
+We use flit_ for package building. Having cloned the repository onto your machine. Install ``flit``::
+
+$ python3 -m pip install flit
+
+Do a developer install of ``scitrack`` using flit as::
+
+$ cd path/to/cloned/repo
+$ flit install -s --python `which python`
+
+.. note:: This installs a symlink into ``site-packages`` of the python identified by ``which python``.
+
 .. [1] The hexdigest serves as a unique signature of a files contents.
+.. _flit: https://flit.readthedocs.io/en/latest/
