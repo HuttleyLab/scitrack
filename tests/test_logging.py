@@ -102,6 +102,32 @@ def test_tracks_locals():
         pass
 
 
+def test_tracks_locals_skip_module():
+    """local arguments should exclude modules"""
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = LOGFILE_NAME
+
+    def track_func(a=1, b="abc"):
+        import gzip
+
+        LOGGER.log_args()
+
+    track_func()
+    LOGGER.shutdown()
+    with open(LOGFILE_NAME, "r") as infile:
+        for line in infile:
+            index = line.find("params :")
+            if index > 0:
+                got = eval(line.split("params :")[1])
+                break
+    assert got == dict(a=1, b="abc")
+
+    try:
+        shutil.rmtree(DIRNAME)
+    except OSError:
+        pass
+
+
 def test_package_inference():
     """correctly identify the package name"""
     name = get_package_name(CachingLogger)

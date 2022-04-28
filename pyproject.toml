@@ -17,12 +17,12 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     ]
-requires-python = ">=3.6"
+requires-python = ">=3.7"
 
 [tool.flit.sdist]
 include = ["src/*", "pyproject.toml", "*.rst"]

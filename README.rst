@@ -8,8 +8,8 @@
   :target: https://codecov.io/gh/HuttleyLab/scitrack
 
 .. |Using Black Formatting| image:: https://img.shields.io/badge/code%20style-black-000000.svg
-.. |Python 3.6+| image:: https://img.shields.io/badge/python-3.6+-blue.svg
-    :target: https://www.python.org/downloads/release/python-360/
+.. |Python 3.7+| image:: https://img.shields.io/badge/python-3.7+-blue.svg
+    :target: https://www.python.org/downloads/release/python-370/
 
 
 ##################

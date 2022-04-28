@@ -199,8 +199,9 @@ class CachingLogger(object):
             args = inspect.getargvalues(parent).locals
 
         # remove args whose value is a CachingLogger
+        # or a module
         for k in list(args):
-            if type(args[k]) == self.__class__:
+            if type(args[k]) == self.__class__ or type(args[k]).__name__ == "module":
                 del args[k]
 
         self.log_message(str(args), label="params")
