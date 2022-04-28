@@ -1,4 +1,4 @@
-|Build Status| |codecov| |Using Black Formatting| |Python 3.6+|
+|Build Status| |codecov| |Using Black Formatting| |Python 3.7+|
 
 .. |Build Status|  image:: https://github.com/HuttleyLab/scitrack/workflows/CI/badge.svg?branch=develop
  :target: https://github.com/HuttleyLab/scitrack/actions?workflow=CI
