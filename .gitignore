@@ -24,10 +24,12 @@ pip-log.txt
 # Unit test / coverage reports
 .coverage
 .tox
+*.nox
 nosetests.xml
 tests/draw_results
 *.pytest_cache
-
+tests/junit-*.xml
+tests/coverage.xml
 # Translations
 *.mo
 
@@ -35,6 +37,7 @@ tests/draw_results
 .mr.developer.cfg
 .project
 .pydevproject
+*.vscode
 
 # vi
 .*.swp
