@@ -40,7 +40,7 @@ test = [
     "isort",
     "pytest",
     "pytest-cov",
-    "tox"]
+    "nox"]
 
 [tool.black]
 line-length = 88
@@ -50,7 +50,7 @@ exclude = '''
   | \.git
   | \.hg
   | \.mypy_cache
-  | \.tox
+  | \.nox
   | \.venv
   | _build
   | build
