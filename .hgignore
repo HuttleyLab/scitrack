@@ -23,3 +23,7 @@ scitrack.egg*
 *.wpu
 *.pytest_cache
 *.tox
+*.nox
+tests/junit-*.xml
+tests/coverage.xml
+*.vscode
