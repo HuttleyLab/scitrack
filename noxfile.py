@@ -1,5 +1,6 @@
 import nox
 
+
 dependencies = "numpy", "click", "pytest", "pytest-cov"
 
 
