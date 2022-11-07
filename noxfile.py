@@ -14,7 +14,7 @@ def test(session):
         "pytest",
         "-x",
         "--junitxml",
-        f"junit-{py_version}.xml",
+        f"junit-{session.python}.xml",
         "--cov-report",
         "xml",
         "--cov",
