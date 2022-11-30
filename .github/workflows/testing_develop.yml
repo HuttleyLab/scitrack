@@ -47,4 +47,4 @@ jobs:
       with:
         github-token: ${{ secrets.github_token }}
         parallel-finished: true
-        path-to-lcov: "lcov-${{ matrix.python-version }}.info"
+        path-to-lcov: "tests/lcov-${{ matrix.python-version }}.info"
