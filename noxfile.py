@@ -4,7 +4,7 @@ import nox
 dependencies = "numpy", "click", "pytest", "pytest-cov"
 
 
-@nox.session(python=[f"3.{v}" for v in range(7, 11)])
+@nox.session(python=[f"3.{v}" for v in range(8, 11)])
 def test(session):
     session.install(*dependencies)
     session.install(".")
