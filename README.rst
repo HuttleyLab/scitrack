@@ -1,15 +1,16 @@
-|Build Status| |codecov| |Using Black Formatting| |Python 3.7+|
+|Build Status| |coverall| |Using Black Formatting| |Python 3.8+|
 
 .. |Build Status|  image:: https://github.com/HuttleyLab/scitrack/workflows/CI/badge.svg?branch=develop
  :target: https://github.com/HuttleyLab/scitrack/actions?workflow=CI
  :alt: CI Status
 
-.. |codecov|  image:: https://codecov.io/gh/HuttleyLab/scitrack/branch/develop/graph/badge.svg
-  :target: https://codecov.io/gh/HuttleyLab/scitrack
+.. |coverall| image:: https://coveralls.io/repos/github/GavinHuttley/scitrack/badge.svg?branch=develop
+    :target: https://coveralls.io/github/GavinHuttley/scitrack?branch=develop
 
 .. |Using Black Formatting| image:: https://img.shields.io/badge/code%20style-black-000000.svg
-.. |Python 3.7+| image:: https://img.shields.io/badge/python-3.7+-blue.svg
-    :target: https://www.python.org/downloads/release/python-370/
+
+.. |Python 3.8+| image:: https://img.shields.io/badge/python-3.8+-blue.svg
+    :target: https://www.python.org/downloads/release/python-380/
 
 
 ##################
