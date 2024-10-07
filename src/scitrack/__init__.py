@@ -194,11 +194,12 @@ class CachingLogger:
             parent = inspect.currentframe().f_back
             args = inspect.getargvalues(parent).locals
 
-        for k in list(args):
-            if type(args[k]) == self.__class__ or type(args[k]).__name__ == "module":
-                del args[k]
-
-        self.log_message(str(args), label="params")
+        result = {
+            k: args[k]
+            for k in list(args)
+            if type(args[k]) != self.__class__ and type(args[k]).__name__ != "module"
+        }
+        self.log_message(str(result), label="params")
 
     def shutdown(self):
         """safely shutdown the logger"""
