@@ -1,6 +1,8 @@
 """
 SciTrack provides basic logging capabilities to track scientific computations.
 """
+
+import contextlib
 import hashlib
 import importlib
 import inspect
@@ -9,9 +11,7 @@ import os
 import platform
 import socket
 import sys
-
 from getpass import getuser
-
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016-2021, Gavin Huttley"
@@ -42,8 +42,7 @@ def _create_path(path):
 def get_package_name(object):
     """returns the package name for the provided object"""
     name = inspect.getmodule(object).__name__
-    package = name.split(".")[0]
-    return package
+    return name.split(".")[0]
 
 
 def get_version_for_package(package):
@@ -51,25 +50,22 @@ def get_version_for_package(package):
     if type(package) == str:
         try:
             mod = importlib.import_module(package)
-        except ModuleNotFoundError:
-            raise ValueError("Unknown package %s" % package)
+        except ModuleNotFoundError as e:
+            raise ValueError(f"Unknown package {package}") from e
     elif inspect.ismodule(package):
         mod = package
     else:
-        raise ValueError("Unknown type, package %s" % package)
+        raise ValueError(f"Unknown type, package {package}")
 
     vn = None
 
     for v in VERSION_ATTRS:
-        try:
+        with contextlib.suppress(AttributeError):
             vn = getattr(mod, v)
             if callable(vn):
                 vn = vn()
 
             break
-        except AttributeError:
-            pass
-
     if type(vn) in (tuple, list):
         vn = vn[0]
 
@@ -149,7 +145,7 @@ class CachingLogger(object):
         file_path = abspath(file_path)
         md5sum = get_file_hexdigest(file_path)
         self.log_message(file_path, label=file_class)
-        self.log_message(md5sum, label="%s md5sum" % file_class)
+        self.log_message(md5sum, label=f"{file_class} md5sum")
 
     def input_file(self, file_path, label="input_file_path"):
         """logs path and md5 checksum
@@ -230,7 +226,7 @@ class CachingLogger(object):
             vn = get_version_for_package(name)
         else:
             vn = [g.get(v, None) for v in VERSION_ATTRS if g.get(v, None)]
-            vn = None if not vn else vn[0]
+            vn = vn[0] if vn else None
             name = get_package_name(parent)
 
         versions = [(name, vn)]
@@ -246,16 +242,16 @@ def set_logger(log_file_path, level=logging.DEBUG, mode="w"):
     """setup logging"""
     handler = FileHandler(log_file_path, mode)
     handler.setLevel(level)
-    hostpid = socket.gethostname() + ":" + str(os.getpid())
+    hostpid = f"{socket.gethostname()}:{os.getpid()}"
     fmt = "%(asctime)s\t" + hostpid + "\t%(levelname)s\t%(message)s"
     formatter = logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S")
     handler.setFormatter(formatter)
     logging.root.addHandler(handler)
     logging.root.setLevel(level)
-    logging.info("system_details : system=%s" % platform.version())
-    logging.info("python : %s" % platform.python_version())
-    logging.info("user : %s" % getuser())
-    logging.info("command_string : %s" % " ".join(sys.argv))
+    logging.info(f"system_details : system={platform.version()}")
+    logging.info(f"python : {platform.python_version()}")
+    logging.info(f"user : {getuser()}")
+    logging.info(f'command_string : {" ".join(sys.argv)}')
     return handler
 
 
@@ -273,11 +269,11 @@ def get_file_hexdigest(filename):
     with open(filename, "rb") as infile:
         md5 = hashlib.md5()
         while True:
-            data = infile.read(128)
-            if not data:
+            if data := infile.read(128):
+                md5.update(data)
+            else:
                 break
 
-            md5.update(data)
     return md5.hexdigest()
 
 
