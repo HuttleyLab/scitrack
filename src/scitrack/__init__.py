@@ -78,7 +78,7 @@ create_path = _create_path
 FileHandler = logging.FileHandler
 
 
-class CachingLogger(object):
+class CachingLogger:
     """stores log messages until a log filename is provided"""
 
     def __init__(self, log_file_path=None, create_dir=True, mode="w"):
@@ -113,7 +113,7 @@ class CachingLogger(object):
         """set the log file path and then dump cached log messages"""
         if self._log_file_path is not None:
             raise AttributeError(
-                f"log_file_path already defined as {self._log_file_path}"
+                f"log_file_path already defined as {self._log_file_path}",
             )
 
         path = abspath(path)
@@ -288,7 +288,7 @@ def get_text_hexdigest(data):
     """
     data_class = data.__class__
     # fmt: off
-    if data_class in ("".__class__, u"".__class__):
+    if data_class in ("".__class__, "".__class__):
         data = data.encode("utf-8")
     elif data.__class__ != b"".__class__:
         raise TypeError("can only checksum string, unicode or bytes data")

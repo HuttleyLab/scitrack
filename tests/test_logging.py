@@ -5,8 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from scitrack import (CachingLogger, get_file_hexdigest, get_package_name,
-                      get_text_hexdigest, get_version_for_package)
+from scitrack import (
+    CachingLogger,
+    get_file_hexdigest,
+    get_package_name,
+    get_text_hexdigest,
+    get_version_for_package,
+)
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2016-2021, Gavin Huttley"
@@ -202,7 +207,7 @@ def test_get_version_for_package():
     pyfile = TEST_ROOTDIR / "delme.py"
     pyfile.write_text("\n".join(["def version():", "  return 'my-version'"]))
     sys.path.append(TEST_ROOTDIR)
-    import delme  # noqa
+    import delme
 
     got = get_version_for_package("delme")
     assert got == "my-version"
@@ -210,7 +215,7 @@ def test_get_version_for_package():
 
     # func returns a list
     pyfile.write_text("version = ['my-version']\n")
-    from importlib import reload  # noqa
+    from importlib import reload
 
     got = get_version_for_package(reload(delme))
     assert got == "my-version"
@@ -270,7 +275,7 @@ def test_mdsum_input(logfile):
     LOGGER.input_file(TEST_ROOTDIR / "sample-crlf.fasta")
     LOGGER.shutdown()
 
-    with open(logfile, "r") as infile:
+    with open(logfile) as infile:
         num = 0
         for line in infile:
             for h, p in hex_path:
@@ -294,7 +299,7 @@ def test_mdsum_output(logfile):
     LOGGER.output_file(TEST_ROOTDIR / "sample-lf.fasta")
     LOGGER.shutdown()
 
-    with open(logfile, "r") as infile:
+    with open(logfile) as infile:
         num = 0
         for line in infile:
             for h, p in hex_path:
@@ -369,4 +374,4 @@ def test_read_from_written(tmp_path):
         expect = get_text_hexdigest(data)
         assert expect == ex, (expect, ex)
         got = get_file_hexdigest(p)
-        assert got == expect, f"FAILED: {repr(lf)}, {(ex, got)}"
+        assert got == expect, f"FAILED: {lf!r}, {(ex, got)}"
