@@ -13,14 +13,7 @@ from scitrack import (
     get_version_for_package,
 )
 
-__author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2016-2021, Gavin Huttley"
-__credits__ = ["Gavin Huttley"]
-__license__ = "BSD"
-__version__ = "2021.5.3"
-__maintainer__ = "Gavin Huttley"
-__email__ = "Gavin.Huttley@anu.edu.au"
-__status__ = "Development"
+__version__ = "2024.10.8"
 
 TEST_ROOTDIR = Path(__file__).parent
 
