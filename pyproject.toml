@@ -35,8 +35,7 @@ Documentation = "https://github.com/HuttleyLab/scitrack"
 
 [tool.flit.metadata.requires-extra]
 test = [
-    "black",
-    "isort",
+    "numpy",
     "pytest",
     "pytest-cov",
     "nox"]
