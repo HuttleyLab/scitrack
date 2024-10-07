@@ -1,19 +1,13 @@
 import nox
 
 
-dependencies = "numpy", "click", "pytest", "pytest-cov"
-
-
-@nox.session(python=[f"3.{v}" for v in range(8, 11)])
+@nox.session(python=[f"3.{v}" for v in range(9, 13)])
 def test(session):
-    session.install(*dependencies)
-    session.install(".")
+    session.install(".[test]")
     session.chdir("tests")
     session.run(
         "pytest",
+        "-s",
         "-x",
-        "--cov-report",
-        f"lcov:lcov-{session.python}.info",
-        "--cov",
-        "scitrack",
+        *session.posargs,
     )

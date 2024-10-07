@@ -1,16 +1,17 @@
-|Build Status| |coverall| |Using Black Formatting| |Python 3.8+|
+|Status| |coverall| |Using Ruff| |Python 3.9+|
 
-.. |Build Status|  image:: https://github.com/HuttleyLab/scitrack/workflows/CI/badge.svg?branch=develop
+.. |Status|  image:: https://github.com/HuttleyLab/scitrack/workflows/CI/badge.svg?branch=develop
  :target: https://github.com/HuttleyLab/scitrack/actions?workflow=CI
  :alt: CI Status
 
 .. |coverall| image:: https://coveralls.io/repos/github/GavinHuttley/scitrack/badge.svg?branch=develop
     :target: https://coveralls.io/github/GavinHuttley/scitrack?branch=develop
 
-.. |Using Black Formatting| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+.. |Using Ruff| image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json
+    :target: https://github.com/astral-sh/ruff
 
-.. |Python 3.8+| image:: https://img.shields.io/badge/python-3.8+-blue.svg
-    :target: https://www.python.org/downloads/release/python-380/
+.. |Python 3.9+| image:: https://img.shields.io/badge/python-3.9+-blue.svg
+    :target: https://www.python.org/downloads/release/python-390/
 
 
 ##################
