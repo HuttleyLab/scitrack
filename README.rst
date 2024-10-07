@@ -1,8 +1,7 @@
-|Status| |coverall| |Using Ruff| |Python 3.9+|
+|CI| |coverall| |Using Ruff| |Python 3.9+|
 
-.. |Status|  image:: https://github.com/HuttleyLab/scitrack/workflows/CI/badge.svg?branch=develop
- :target: https://github.com/HuttleyLab/scitrack/actions?workflow=CI
- :alt: CI Status
+.. |CI| image:: https://github.com/HuttleyLab/scitrack/actions/workflows/testing_develop.yml/badge.svg
+   :target: https://github.com/HuttleyLab/scitrack/actions/workflows/testing_develop.yml
 
 .. |coverall| image:: https://coveralls.io/repos/github/GavinHuttley/scitrack/badge.svg?branch=develop
     :target: https://coveralls.io/github/GavinHuttley/scitrack?branch=develop
