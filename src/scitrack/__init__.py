@@ -243,7 +243,7 @@ def set_logger(log_file_path, level=logging.DEBUG, mode="w"):
     logging.info(f"system_details : system={platform.version()}")
     logging.info(f"python : {platform.python_version()}")
     logging.info(f"user : {getuser()}")
-    logging.info(f'command_string : {" ".join(sys.argv)}')
+    logging.info(f"command_string : {' '.join(sys.argv)}")
     return handler
 
 

@@ -40,7 +40,7 @@ test = [
     "numpy",
     "pytest",
     "pytest-cov",
-    "ruff==0.6.9",
+    "ruff==0.12.9",
     "nox"]
 
 [tool.ruff]
