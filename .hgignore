@@ -27,3 +27,7 @@ scitrack.egg*
 tests/junit-*.xml
 tests/coverage.xml
 *.vscode
+.mypy_cache/*
+.ruff_cache/*
+.venv/*
+venv/*
