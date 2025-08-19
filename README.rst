@@ -1,4 +1,4 @@
-|CI| |coverall| |Using Ruff| |Python 3.9+|
+|CI| |coverall| |Using Ruff| |Python 3.10+|
 
 .. |CI| image:: https://github.com/HuttleyLab/scitrack/actions/workflows/testing_develop.yml/badge.svg
    :target: https://github.com/HuttleyLab/scitrack/actions/workflows/testing_develop.yml
@@ -9,8 +9,8 @@
 .. |Using Ruff| image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json
     :target: https://github.com/astral-sh/ruff
 
-.. |Python 3.9+| image:: https://img.shields.io/badge/python-3.9+-blue.svg
-    :target: https://www.python.org/downloads/release/python-390/
+.. |Python 3.10+| image:: https://img.shields.io/badge/python-3.10+-blue.svg
+    :target: https://www.python.org/downloads/release/python-310/
 
 
 ##################

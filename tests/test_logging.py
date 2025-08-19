@@ -75,7 +75,7 @@ def test_tracks_locals(logfile):
         if index > 0:
             got = eval(line.split("params :")[1])
             break
-    assert got == dict(a=1, b="abc")
+    assert got == {"a": 1, "b": "abc"}
 
 
 def test_tracks_locals_skip_module(logfile):
@@ -95,7 +95,7 @@ def test_tracks_locals_skip_module(logfile):
         if index > 0:
             got = eval(line.split("params :")[1])
             break
-    assert got == dict(a=1, b="abc")
+    assert got == {"a": 1, "b": "abc"}
 
 
 def test_package_inference():
@@ -139,9 +139,8 @@ def test_caching(logfile):
     """should cache calls prior to logging"""
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
-    assert (
-        "sample-lf.fasta" in LOGGER._messages[-2] and "md5sum" in LOGGER._messages[-1]
-    )
+    assert "sample-lf.fasta" in LOGGER._messages[-2]
+    assert "md5sum" in LOGGER._messages[-1]
     LOGGER.log_versions(["numpy"])
     assert "numpy==" in LOGGER._messages[-1]
 
@@ -181,10 +180,10 @@ def test_tracks_versions_string(logfile):
     LOGGER.log_file_path = logfile
     LOGGER.log_versions("numpy")
     LOGGER.shutdown()
-    import numpy
+    import numpy as np
 
-    expect = f"numpy=={numpy.__version__}"
-    del numpy
+    expect = f"numpy=={np.__version__}"
+    del np
     for line in logfile.read_text().splitlines():
         if "version :" in line and "numpy" in line:
             assert expect in line, line
@@ -192,13 +191,13 @@ def test_tracks_versions_string(logfile):
 
 def test_get_version_for_package():
     """should track version if package is a module"""
-    import numpy
+    import numpy as np
 
-    got = get_version_for_package(numpy)
-    assert got == numpy.__version__
+    got = get_version_for_package(np)
+    assert got == np.__version__
     # one with a callable
     pyfile = TEST_ROOTDIR / "delme.py"
-    pyfile.write_text("\n".join(["def version():", "  return 'my-version'"]))
+    pyfile.write_text("def version():\n  return 'my-version'")
     sys.path.append(TEST_ROOTDIR)
     import delme
 
@@ -219,12 +218,12 @@ def test_tracks_versions_module(logfile):
     """should track version if package is a module"""
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.log_file_path = logfile
-    import numpy
+    import numpy as np
 
-    expect = f"numpy=={numpy.__version__}"
-    LOGGER.log_versions(numpy)
+    expect = f"numpy=={np.__version__}"
+    LOGGER.log_versions(np)
     LOGGER.shutdown()
-    del numpy
+    del np
     for line in logfile.read_text().splitlines():
         if "version :" in line and "numpy" in line:
             assert expect in line, line
@@ -239,7 +238,7 @@ def test_appending(logfile):
     records = Counter()
     for line in logfile.read_text().splitlines():
         records[line] += 1
-    vals = set(list(records.values()))
+    vals = set(records.values())
     assert vals == {1}
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.mode = "a"
@@ -250,7 +249,7 @@ def test_appending(logfile):
     records = Counter()
     for line in logfile.read_text().splitlines():
         records[line] += 1
-    vals = set(list(records.values()))
+    vals = set(records.values())
 
     assert vals == {2}
 
