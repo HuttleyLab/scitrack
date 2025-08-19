@@ -21,20 +21,6 @@ __version__ = "2024.10.8"
 VERSION_ATTRS = ["__version__", "version", "VERSION"]
 
 
-def abspath(path: str) -> str:
-    """returns an expanded, absolute path"""
-    return str(Path(path).expanduser().resolve())
-
-
-def _create_path(path: str | os.PathLike) -> None:
-    """creates path"""
-    dir_path: Path = Path(path)
-    if dir_path.exists():
-        return
-
-    dir_path.mkdir(parents=True, exist_ok=True)
-
-
 def get_package_name(object: object) -> str:
     """returns the package name for the provided object"""
     name = inspect.getmodule(object).__name__  # type: ignore
@@ -114,7 +100,7 @@ class CachingLogger:
             msg = f"log_file_path already defined as {self._log_file_path}"
             raise AttributeError(msg)
 
-        log_path: Path = Path(path).expanduser().resolve()
+        log_path: Path = Path(path).expanduser().resolve(strict=False)
         if self.create_dir:
             log_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -139,9 +125,9 @@ class CachingLogger:
 
     def _record_file(self, file_class: str, file_path: str) -> None:
         """writes the file path and md5 checksum to log file"""
-        file_path = abspath(file_path)
-        md5sum = get_file_hexdigest(file_path)
-        self.log_message(file_path, label=file_class)
+        path: Path = Path(file_path).expanduser().resolve(strict=False)
+        md5sum = get_file_hexdigest(path)
+        self.log_message(str(path), label=file_class)
         self.log_message(md5sum, label=f"{file_class} md5sum")
 
     def input_file(self, file_path: str, label: str = "input_file_path") -> None:
@@ -223,6 +209,7 @@ class CachingLogger:
             return
 
         parent = frame.f_back
+        del frame
         if parent is None:
             return
 
@@ -231,7 +218,7 @@ class CachingLogger:
         if name:
             vn = get_version_for_package(name)
         else:
-            vn = [g.get(v, None) for v in VERSION_ATTRS if g.get(v, None)]
+            vn = [g[v] for v in VERSION_ATTRS if g.get(v, None)]
             vn = vn[0] if vn else None
             name = get_package_name(parent)
 
@@ -242,6 +229,8 @@ class CachingLogger:
 
         for n_v in versions:
             self.log_message("{}=={}".format(*n_v), label="version")
+
+        del parent
 
 
 def set_logger(
