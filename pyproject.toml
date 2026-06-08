@@ -1,19 +1,20 @@
 [build-system]
-requires = ["flit_core >=3.12.0,<4"]
-build-backend = "flit_core.buildapi"
+requires = ["uv_build>=0.11,<0.13"]
+build-backend = "uv_build"
 
-[tool.flit.metadata]
-module = "scitrack"
-author = "Gavin Huttley"
-author-email = "Gavin.Huttley@anu.edu.au"
-home-page = "https://github.com/HuttleyLab/scitrack"
-license = "BSD-3"
-description-file = "README.rst"
-keywords = "science, logging"
+[project]
+name = "scitrack"
+version = "2024.10.8"
+description = "Basic logging capabilities to track scientific computations."
+readme = "README.rst"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+authors = [{ name = "Gavin Huttley", email = "Gavin.Huttley@anu.edu.au" }]
+requires-python = ">=3.10"
+keywords = ["science", "logging"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Operating System :: OS Independent",
@@ -22,25 +23,27 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-requires-python = ">=3.10"
+dependencies = []
 
-[tool.flit.sdist]
-include = ["src/*", "pyproject.toml", "*.rst"]
-exclude = ["*.xml"]
-
-
-[tool.flit.metadata.urls]
+[project.urls]
+Homepage = "https://github.com/HuttleyLab/scitrack"
 Documentation = "https://github.com/HuttleyLab/scitrack"
 "Bug Tracker" = "https://github.com/HuttleyLab/scitrack/issues"
 "Source Code" = "https://github.com/HuttleyLab/scitrack"
 
-[tool.flit.metadata.requires-extra]
-test = [
+[dependency-groups]
+dev = [
     "numpy",
     "pytest",
     "pytest-cov",
     "ruff==0.12.9",
-    "nox"]
+    "nox",
+]
+
+[tool.uv.build-backend]
+module-name = "scitrack"
+module-root = "src"
+source-exclude = ["**/*.xml", "**/__pycache__"]
 
 [tool.ruff]
 exclude = [
