@@ -21,9 +21,10 @@ __version__ = "2024.10.8"
 VERSION_ATTRS = ["__version__", "version", "VERSION"]
 
 
-def get_package_name(object: object) -> str:
+def get_package_name(obj: object) -> str:
     """returns the package name for the provided object"""
-    name = inspect.getmodule(object).__name__  # type: ignore
+    mod = inspect.getmodule(obj)
+    name = getattr(mod, "__name__", "")
     return name.split(".")[0]
 
 
@@ -74,6 +75,7 @@ class CachingLogger:
         self._hostname = socket.gethostname()
         self._mode = mode
         self._log_file_path: str | None = None
+        self._logger: logging.Logger | None = None
         self._logfile: logging.Handler | None = None
         if log_file_path:
             self.log_file_path = log_file_path
@@ -83,10 +85,13 @@ class CachingLogger:
         self._started = False
         self._messages = []
         if self._logfile is not None:
+            if self._logger is not None:
+                self._logger.removeHandler(self._logfile)
             self._logfile.flush()
             self._logfile.close()
             self._logfile = None
 
+        self._logger = None
         self._log_file_path = None
 
     @property
@@ -106,9 +111,11 @@ class CachingLogger:
 
         self._log_file_path = str(log_path)
 
-        self._logfile = set_logger(log_path, mode=self.mode)
+        logger_name = "scitrack." + str(log_path).replace(os.sep, "_").replace(".", "_")
+        self._logger = logging.getLogger(logger_name)
+        self._logfile = set_logger(log_path, mode=self.mode, logger=self._logger)
         for m in self._messages:
-            logging.info(m)
+            self._logger.info(m)
 
         self._messages = []
         self._started = True
@@ -163,10 +170,10 @@ class CachingLogger:
         label = label or "misc"
         data = [label, msg]
         msg = " : ".join(data)
-        if not self._started:
+        if not self._started or self._logger is None:
             self._messages.append(msg)
         else:
-            logging.info(msg)
+            self._logger.info(msg)
 
     def log_args(self, args: dict[str, object] | None = None) -> None:
         """save arguments to file using label='params'
@@ -188,8 +195,6 @@ class CachingLogger:
 
     def shutdown(self) -> None:
         """safely shutdown the logger"""
-        if self._logfile:
-            logging.getLogger().removeHandler(self._logfile)
         self._reset()
 
     def log_versions(self, packages: list[str] | str | None = None) -> None:
@@ -238,17 +243,22 @@ def set_logger(
     log_file_path: str | os.PathLike[str],
     level: int = logging.DEBUG,
     mode: str = "w",
+    logger: logging.Logger | None = None,
 ) -> logging.Handler:
-    """setup logging"""
+    """attach a file handler to ``logger`` (or the package logger by default)
+
+    Writes a header block (system, python, user, command_string) to the file.
+    """
+    if logger is None:
+        logger = logging.getLogger("scitrack")
     handler = logging.FileHandler(log_file_path, mode)
     handler.setLevel(level)
     hostpid = f"{socket.gethostname()}:{os.getpid()}"
     fmt = "%(asctime)s\t" + hostpid + "\t%(levelname)s\t%(message)s"
     formatter = logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S")
     handler.setFormatter(formatter)
-    logging.root.addHandler(handler)
-    logging.root.setLevel(level)
-    logger = logging.getLogger(handler.name)
+    logger.addHandler(handler)
+    logger.setLevel(level)
     logger.info(f"system_details : system={platform.version()}")
     logger.info(f"python : {platform.python_version()}")
     logger.info(f"user : {getuser()}")
