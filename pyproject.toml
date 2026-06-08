@@ -33,18 +33,20 @@ Documentation = "https://github.com/HuttleyLab/scitrack"
 "Source Code" = "https://github.com/HuttleyLab/scitrack"
 
 [dependency-groups]
-dev = [
-    "numpy",
-    "pytest",
-    "pytest-cov",
-    "ruff==0.12.9",
-    "nox",
-]
+dev = ["numpy", "pytest", "pytest-cov", "ruff==0.12.9", "nox", "mypy>=2.1.0"]
 
 [tool.uv.build-backend]
 module-name = "scitrack"
 module-root = "src"
 source-exclude = ["**/*.xml", "**/__pycache__"]
+
+[tool.mypy]
+files = ["src/scitrack"]
+python_version = "3.10"
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unreachable = true
 
 [tool.ruff]
 exclude = [
@@ -95,18 +97,18 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = [
-    "S101", # asserts allowed in tests...
+    "S101",   # asserts allowed in tests...
     "INP001", # __init__.py files are not required...
     "ANN",
     "N802",
-    "N803"
+    "N803",
 ]
 "noxfile.py" = [
-    "S101", # asserts allowed in tests...
+    "S101",   # asserts allowed in tests...
     "INP001", # __init__.py files are not required...
     "ANN",
     "N802",
-    "N803"
+    "N803",
 ]
 
 [tool.ruff.format]

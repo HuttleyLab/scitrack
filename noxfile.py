@@ -11,6 +11,12 @@ def fmt(session: nox.Session) -> None:
 
 
 @nox.session(python=py_vers, venv_backend="uv")
+def type_check(session):
+    session.install("-e", ".", "--group", "dev")
+    session.run("mypy", "src/scitrack/")
+
+
+@nox.session(python=py_vers, venv_backend="uv")
 def test(session):
     session.install("-e", ".", "--group", "dev")
     session.chdir("tests")
