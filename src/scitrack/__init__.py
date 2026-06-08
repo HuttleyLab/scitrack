@@ -5,6 +5,7 @@ SciTrack provides basic logging capabilities to track scientific computations.
 import contextlib
 import hashlib
 import importlib
+import importlib.metadata
 import inspect
 import logging
 import os
@@ -28,15 +29,34 @@ def get_package_name(obj: object) -> str:
     return name.split(".")[0]
 
 
+def _version_via_metadata(name: str) -> str | None:
+    """resolve version from installed distribution metadata (PEP 566).
+
+    Returns None if the distribution is not installed, the lookup raises
+    any exception, or the recorded version is empty.
+    """
+    try:
+        version = importlib.metadata.version(name)
+    except Exception:  # noqa: BLE001
+        return None
+    return version or None
+
+
 def get_version_for_package(package: str | types.ModuleType) -> str | None:
     """returns the version of package"""
     if isinstance(package, str):
+        version = _version_via_metadata(package)
+        if version is not None:
+            return version
         try:
             mod = importlib.import_module(package)
         except ModuleNotFoundError as e:
             msg = f"Unknown package {package}"
             raise ValueError(msg) from e
     elif inspect.ismodule(package):
+        version = _version_via_metadata(package.__name__.split(".")[0])
+        if version is not None:
+            return version
         mod = package
     else:
         msg = f"Unknown type, package {package}"  # type: ignore[unreachable]
