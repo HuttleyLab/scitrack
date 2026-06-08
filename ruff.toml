@@ -36,7 +36,7 @@ target-version = "py310"
 # McCabe complexity (`C901`) by default.
 # G004 is about lazy formatting of logging args, not important here
 select = ["ALL"]
-ignore = ["EXE002", "FA100", "E501", "D", "G004"]
+ignore = ["EXE002", "FA100", "E501", "D", "G004", "COM812"]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
