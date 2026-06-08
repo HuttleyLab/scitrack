@@ -277,7 +277,7 @@ def get_file_hexdigest(filename: str | os.PathLike[str]) -> str:
     """
     # from
     # http://stackoverflow.com/questions/1131220/get-md5-hash-of-big-files-in-python
-    with open(filename, "rb") as infile:
+    with Path(filename).open("rb") as infile:
         md5 = hashlib.md5(usedforsecurity=False)
         while True:
             if data := infile.read(128):
