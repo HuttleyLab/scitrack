@@ -13,6 +13,7 @@ import platform
 import socket
 import sys
 import types
+from enum import Enum
 from getpass import getuser
 from pathlib import Path
 
@@ -20,6 +21,29 @@ __version__ = "2026.6.8"
 
 
 VERSION_ATTRS = ["__version__", "version", "VERSION"]
+
+
+class LogLabel(str, Enum):
+    """labels emitted by scitrack itself.
+
+    Notes
+    -----
+    User code may also pass arbitrary strings
+    """
+
+    MISC = "misc"
+    PARAMS = "params"
+    VERSION = "version"
+    INPUT_FILE = "input_file_path"
+    OUTPUT_FILE = "output_file_path"
+    MD5SUM = "md5sum"
+    SYSTEM_DETAILS = "system_details"
+    PYTHON = "python"
+    USER = "user"
+    COMMAND_STRING = "command_string"
+
+    def __str__(self) -> str:
+        return str(self.value)
 
 
 def get_package_name(obj: object) -> str:
@@ -150,47 +174,58 @@ class CachingLogger:
         """the logfile file opening mode"""
         self._mode = mode
 
-    def _record_file(self, file_class: str, file_path: str) -> None:
+    def _record_file(self, file_class: str | LogLabel, file_path: str) -> None:
         """writes the file path and md5 checksum to log file"""
         path: Path = Path(file_path).expanduser().resolve(strict=False)
         md5sum = get_file_hexdigest(path)
         self.log_message(str(path), label=file_class)
-        self.log_message(md5sum, label=f"{file_class} md5sum")
+        self.log_message(md5sum, label=f"{file_class} {LogLabel.MD5SUM}")
 
-    def input_file(self, file_path: str, label: str = "input_file_path") -> None:
+    def input_file(
+        self,
+        file_path: str,
+        label: str | LogLabel = LogLabel.INPUT_FILE,
+    ) -> None:
         """logs path and md5 checksum
 
         Argument:
             - label is inserted before the message"""
         self._record_file(label, file_path)
 
-    def output_file(self, file_path: str, label: str = "output_file_path") -> None:
+    def output_file(
+        self,
+        file_path: str,
+        label: str | LogLabel = LogLabel.OUTPUT_FILE,
+    ) -> None:
         """logs path and md5 checksum
 
         Argument:
-            - label is inserted before the message"""
+            - label is inserted before the message
+        """
         self._record_file(label, file_path)
 
-    def text_data(self, data: str, label: str | None = None) -> None:
+    def text_data(self, data: str, label: str | LogLabel | None = None) -> None:
         """logs md5 checksum for input text data.
 
         Argument:
             - label is inserted before the message
 
-        For this to be useful you must ensure the text order is persistent."""
+        For this to be useful you must ensure the text order is persistent.
+        """
         if label is None:
             msg = "text_data requires a non-None label"
             raise ValueError(msg)
         md5sum = get_text_hexdigest(data)
         self.log_message(md5sum, label=label)
 
-    def log_message(self, msg: str, label: str | None = None) -> None:
+    def log_message(self, msg: str, label: str | LogLabel | None = None) -> None:
         """writes a log message
 
         Argument:
-            - label is inserted before the message"""
-        label = label or "misc"
-        data = [label, msg]
+            - label is inserted before the message
+        """
+        label = label or LogLabel.MISC
+        data = [str(label), msg]
         msg = " : ".join(data)
         if not self._started or self._logger is None:
             self._messages.append(msg)
@@ -199,9 +234,11 @@ class CachingLogger:
 
     def log_args(self, args: dict[str, object] | None = None) -> None:
         """save arguments to file using label='params'
+
         Argument:
             - args: if None, uses inspect module to get locals
-              from the calling frame"""
+              from the calling frame
+        """
         if args is None:
             frame = inspect.currentframe()
             parent = frame.f_back if frame is not None else None
@@ -213,7 +250,7 @@ class CachingLogger:
             if not isinstance(args[k], self.__class__)
             and not isinstance(args[k], type(importlib))
         }
-        self.log_message(str(result), label="params")
+        self.log_message(str(result), label=LogLabel.PARAMS)
 
     def shutdown(self) -> None:
         """safely shutdown the logger"""
@@ -256,7 +293,7 @@ class CachingLogger:
             versions.append((package, vn))
 
         for n_v in versions:
-            self.log_message("{}=={}".format(*n_v), label="version")
+            self.log_message("{}=={}".format(*n_v), label=LogLabel.VERSION)
 
         del parent
 
@@ -281,10 +318,10 @@ def set_logger(
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(level)
-    logger.info(f"system_details : system={platform.version()}")
-    logger.info(f"python : {platform.python_version()}")
-    logger.info(f"user : {getuser()}")
-    logger.info(f"command_string : {' '.join(sys.argv)}")
+    logger.info(f"{LogLabel.SYSTEM_DETAILS} : system={platform.version()}")
+    logger.info(f"{LogLabel.PYTHON} : {platform.python_version()}")
+    logger.info(f"{LogLabel.USER} : {getuser()}")
+    logger.info(f"{LogLabel.COMMAND_STRING} : {' '.join(sys.argv)}")
     return handler
 
 

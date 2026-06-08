@@ -327,6 +327,39 @@ def test_text_data_requires_label(logfile):
     LOGGER.shutdown()
 
 
+def test_loglabel_values_are_strings():
+    """LogLabel members format as their plain string value"""
+    from scitrack import LogLabel
+
+    assert LogLabel.PARAMS == "params"
+    assert f"{LogLabel.PARAMS}" == "params"
+    assert str(LogLabel.MISC) == "misc"
+
+
+def test_input_file_accepts_loglabel_enum(logfile):
+    """passing a LogLabel member as the label yields the same log line as the default"""
+    from scitrack import LogLabel
+
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta", label=LogLabel.INPUT_FILE)
+    LOGGER.shutdown()
+    contents = logfile.read_text()
+    assert "\tinput_file_path :" in contents
+    assert "\tinput_file_path md5sum :" in contents
+
+
+def test_input_file_accepts_custom_string_label(logfile):
+    """custom string labels still work for back-compat"""
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta", label="my-tag")
+    LOGGER.shutdown()
+    contents = logfile.read_text()
+    assert "\tmy-tag :" in contents
+    assert "\tmy-tag md5sum :" in contents
+
+
 def test_logfile_path(logfile):
     """correctly assigned"""
     LOGGER = CachingLogger(create_dir=True, log_file_path=logfile)
