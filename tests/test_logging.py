@@ -9,11 +9,13 @@ import pytest
 import scitrack as _scitrack
 from scitrack import (
     CachingLogger,
+    LogLabel,
     __version__,
     get_file_hexdigest,
     get_package_name,
     get_text_hexdigest,
     get_version_for_package,
+    log_summary,
     set_logger,
 )
 
@@ -466,3 +468,152 @@ def test_log_versions_uses_caller_package_name(monkeypatch, logfile):
 
     contents = logfile.read_text()
     assert "scitrack==" in contents
+
+
+def _make_session_log(logfile):
+    """write a representative scitrack session for log_summary tests"""
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
+    LOGGER.input_file(TEST_ROOTDIR / "sample-crlf.fasta")
+    LOGGER.log_args({"a": 1, "b": "abc"})
+    LOGGER.log_versions(["numpy"])
+    LOGGER.shutdown()
+
+
+def test_log_summary_groups_built_in_labels(logfile):
+    """default call returns every standard scitrack label"""
+    _make_session_log(logfile)
+    summary = log_summary(logfile)
+
+    assert "system_details" in summary
+    assert "python" in summary
+    assert "user" in summary
+    assert "command_string" in summary
+    assert "params" in summary
+    assert "version" in summary
+    assert "input_file_path" in summary
+    assert "input_file_path md5sum" in summary
+
+    assert len(summary["system_details"]) == 1
+    assert len(summary["input_file_path"]) == 2
+    assert len(summary["input_file_path md5sum"]) == 2
+    assert len(summary["version"]) >= 2  # caller package + numpy
+    assert summary["params"] == ["{'a': 1, 'b': 'abc'}"]
+
+
+def test_log_summary_preserves_values_with_colons(logfile):
+    """`params : {'k': 'v'}` value is captured intact even though it contains colons"""
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    LOGGER.log_args({"x": 1, "y": "needs : space"})
+    LOGGER.shutdown()
+
+    summary = log_summary(logfile)
+    assert summary["params"] == ["{'x': 1, 'y': 'needs : space'}"]
+
+
+def test_log_summary_accepts_pathlike(logfile):
+    """passing a Path object works, not just str"""
+    _make_session_log(logfile)
+    assert log_summary(Path(logfile)) == log_summary(str(logfile))
+
+
+def test_log_summary_md5sum_default_includes_output(logfile):
+    """output_file_path md5sum is recognised without specifying labels"""
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    LOGGER.output_file(TEST_ROOTDIR / "sample-lf.fasta")
+    LOGGER.shutdown()
+
+    summary = log_summary(logfile)
+    assert "output_file_path" in summary
+    assert "output_file_path md5sum" in summary
+
+
+def test_log_summary_extra_labels(logfile):
+    """user-supplied labels widen the recognised set"""
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta", label="my-tag")
+    LOGGER.shutdown()
+
+    default = log_summary(logfile)
+    assert "my-tag" not in default
+    assert "my-tag md5sum" not in default
+
+    widened = log_summary(logfile, labels=["my-tag", "my-tag md5sum"])
+    assert len(widened["my-tag"]) == 1
+    assert len(widened["my-tag md5sum"]) == 1
+
+
+def test_log_summary_loglabel_enum_as_extra_label(logfile):
+    """LogLabel members can be passed via the labels list (back-compat with strings)"""
+    _make_session_log(logfile)
+    # PARAMS is already recognised by default. Passing it again is a no-op
+    # but should not double-count entries.
+    summary = log_summary(logfile, labels=[LogLabel.PARAMS])
+    assert len(summary["params"]) == 1
+
+
+def test_log_summary_empty_file(tmp_path):
+    """empty log file yields empty dict"""
+    empty = tmp_path / "empty.log"
+    empty.write_text("")
+    assert log_summary(empty) == {}
+
+
+def test_log_summary_ignores_unknown_labels(tmp_path):
+    """lines with an unrecognised label are skipped"""
+    log = tmp_path / "synth.log"
+    log.write_text(
+        "2026-06-09 10:00:00\thost:1\tINFO\tparams : alpha\n"
+        "2026-06-09 10:00:00\thost:1\tINFO\tnot_a_known_label : ignored\n"
+        "2026-06-09 10:00:00\thost:1\tINFO\tparams : beta\n",
+    )
+    summary = log_summary(log)
+    assert summary == {"params": ["alpha", "beta"]}
+
+
+def test_log_summary_skips_malformed_lines(tmp_path):
+    """blank lines, lines with too few tabs, and lines without ' : ' are all skipped"""
+    log = tmp_path / "malformed.log"
+    log.write_text(
+        "\n"  # blank
+        "no tabs at all\n"  # < 4 fields
+        "2026-06-09 10:00:00\thost:1\tINFO\tno_colon_separator\n"  # no ' : '
+        "2026-06-09 10:00:00\thost:1\tINFO\tparams : kept\n",
+    )
+    assert log_summary(log) == {"params": ["kept"]}
+
+
+def test_log_summary_multiple_entries_preserve_order(tmp_path):
+    """multiple entries under the same label come back in file order"""
+    log = tmp_path / "ordered.log"
+    log.write_text(
+        "2026-06-09 10:00:00\thost:1\tINFO\tversion : a==1\n"
+        "2026-06-09 10:00:00\thost:1\tINFO\tversion : b==2\n"
+        "2026-06-09 10:00:00\thost:1\tINFO\tversion : c==3\n",
+    )
+    assert log_summary(log) == {"version": ["a==1", "b==2", "c==3"]}
+
+
+def test_log_summary_all_labels_captures_unknown(tmp_path):
+    """all_labels=True records every label, including ones not in the recognised set"""
+    log = tmp_path / "all.log"
+    log.write_text(
+        "2026-06-09 10:00:00\thost:1\tINFO\tparams : standard\n"
+        "2026-06-09 10:00:00\thost:1\tINFO\tbespoke_tag : x\n"
+        "2026-06-09 10:00:00\thost:1\tINFO\tanother_tag : y\n",
+    )
+
+    default = log_summary(log)
+    assert "bespoke_tag" not in default
+    assert "another_tag" not in default
+
+    everything = log_summary(log, all_labels=True)
+    assert everything == {
+        "params": ["standard"],
+        "bespoke_tag": ["x"],
+        "another_tag": ["y"],
+    }

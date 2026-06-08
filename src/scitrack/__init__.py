@@ -367,3 +367,55 @@ def get_text_hexdigest(data: str | bytes) -> str:
     md5 = hashlib.md5(usedforsecurity=False)
     md5.update(data_bytes)
     return md5.hexdigest()
+
+
+def log_summary(
+    path: str | os.PathLike[str],
+    *,
+    labels: list[str] | None = None,
+    all_labels: bool = False,
+) -> dict[str, list[str]]:
+    """returns logfile entries grouped by label
+
+    Parameters
+    ----------
+    path
+        The log file path.
+    labels
+        Extra labels (beyond the built-in ``LogLabel`` to recognise.
+        Lines whose label is not in the recognised set are skipped
+        silently.
+    all_labels
+        If ``True``, every label encountered in the file is captured,
+        not just the recognised set.
+
+    Returns
+    -------
+    dict[str, list[str]]
+        Mapping of label to the list of values emitted under that label,
+        in the order they appear in the file.
+    """
+    recognised: set[str] = {member.value for member in LogLabel}
+    recognised.add(f"{LogLabel.INPUT_FILE} {LogLabel.MD5SUM}")
+    recognised.add(f"{LogLabel.OUTPUT_FILE} {LogLabel.MD5SUM}")
+    if labels:
+        recognised.update(labels)
+
+    result: dict[str, list[str]] = {}
+    with Path(path).open(encoding="utf-8") as fh:
+        for raw in fh:
+            line = raw.rstrip("\n")
+            if not line:
+                continue
+            try:
+                _ts, _hostpid, _level, message = line.split("\t", 3)
+            except ValueError:
+                continue
+            try:
+                label, value = message.split(" : ", 1)
+            except ValueError:
+                continue
+            if not all_labels and label not in recognised:
+                continue
+            result.setdefault(label, []).append(value)
+    return result
