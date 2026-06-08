@@ -5,6 +5,7 @@ on: [workflow_dispatch]
 jobs:
   test:
     name: "Test on Python ${{ matrix.python-version }} (${{ matrix.os }})"
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest]
