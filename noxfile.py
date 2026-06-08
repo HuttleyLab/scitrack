@@ -26,3 +26,17 @@ def test(session):
         "-x",
         *session.posargs,
     )
+
+
+@nox.session(python=py_vers, venv_backend="uv")
+def testcov(session):
+    session.install("-e", ".", "--group", "dev")
+    session.run(
+        "pytest",
+        "--cov-report",
+        "html",
+        "--cov",
+        "scitrack",
+        ".",
+        *session.posargs,
+    )
