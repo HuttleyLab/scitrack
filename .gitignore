@@ -41,3 +41,14 @@ tests/coverage.xml
 
 # vi
 .*.swp
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
+CLAUDE.md
+.idea/*
+.DS_Store
+*.wpr
+*.wpu
+.cache/*
+.claude/settings.local.json

@@ -16,26 +16,26 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.10", "3.13"]
+        python-version: ["3.10", "3.14"]
 
     steps:
       - uses: "actions/checkout@v6"
         with:
           fetch-depth: 0
 
-      # Setup env
+      - uses: "astral-sh/setup-uv@v6"
+        with:
+          enable-cache: true
+
       - uses: "actions/setup-python@v6"
         with:
             python-version: "${{ matrix.python-version }}"
 
-      - name: "Installs for ${{ matrix.python-version }}"
-        run: |
-          python --version
-          pip install --upgrade pip wheel setuptools flit
-          pip install --upgrade nox
+      - name: "Install nox"
+        run: uv tool install nox
 
       - name: "Run nox for ${{ matrix.python-version }}"
-        run: "nox -s test-${{ matrix.python-version }} -- --cov-report lcov:lcov-${{matrix.os}}-${{matrix.python-version}}.lcov --cov-report term --cov-append --cov scitrack"
+        run: "nox -db uv -s test-${{ matrix.python-version }} -- --cov-report lcov:lcov-${{matrix.os}}-${{matrix.python-version}}.lcov --cov-report term --cov-append --cov scitrack"
 
       - name: Coveralls Parallel
         uses: coverallsapp/github-action@v2

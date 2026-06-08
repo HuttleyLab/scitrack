@@ -1,19 +1,21 @@
 import contextlib
+import logging
 import sys
 from collections import Counter
 from pathlib import Path
 
 import pytest
 
+import scitrack as _scitrack
 from scitrack import (
     CachingLogger,
+    __version__,
     get_file_hexdigest,
     get_package_name,
     get_text_hexdigest,
     get_version_for_package,
+    set_logger,
 )
-
-__version__ = "2024.10.8"
 
 TEST_ROOTDIR = Path(__file__).parent
 
@@ -316,6 +318,15 @@ def test_logging_text(logfile):
     assert hexd in unique
 
 
+def test_text_data_requires_label(logfile):
+    """text_data raises ValueError when label is omitted"""
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    with pytest.raises(ValueError, match="non-None label"):
+        LOGGER.text_data("anything")
+    LOGGER.shutdown()
+
+
 def test_logfile_path(logfile):
     """correctly assigned"""
     LOGGER = CachingLogger(create_dir=True, log_file_path=logfile)
@@ -367,3 +378,58 @@ def test_read_from_written(tmp_path):
         assert expect == ex, (expect, ex)
         got = get_file_hexdigest(p)
         assert got == expect, f"FAILED: {lf!r}, {(ex, got)}"
+
+
+def test_set_logger_default_logger(tmp_path):
+    """set_logger attaches the handler to the 'scitrack' logger when none is passed"""
+    log_path = tmp_path / "default.log"
+    handler = set_logger(log_path)
+    pkg_logger = logging.getLogger("scitrack")
+    try:
+        assert handler in pkg_logger.handlers
+        assert log_path.exists()
+    finally:
+        pkg_logger.removeHandler(handler)
+        handler.flush()
+        handler.close()
+
+
+def test_log_versions_no_current_frame(monkeypatch, logfile):
+    """log_versions returns silently if inspect.currentframe yields None"""
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: None)
+    LOGGER.log_versions()
+    LOGGER.shutdown()
+
+
+def test_log_versions_no_parent_frame(monkeypatch, logfile):
+    """log_versions returns silently when the caller's f_back is None"""
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+
+    class _Frame:
+        f_back = None
+
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: _Frame())
+    LOGGER.log_versions()
+    LOGGER.shutdown()
+
+
+def test_log_versions_uses_caller_package_name(monkeypatch, logfile):
+    """log_versions resolves the caller's package name and writes its version"""
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+
+    class _Parent:
+        f_globals = {"__name__": "scitrack"}
+
+    class _Frame:
+        f_back = _Parent()
+
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: _Frame())
+    LOGGER.log_versions()
+    LOGGER.shutdown()
+
+    contents = logfile.read_text()
+    assert "scitrack==" in contents

@@ -21,9 +21,10 @@ __version__ = "2024.10.8"
 VERSION_ATTRS = ["__version__", "version", "VERSION"]
 
 
-def get_package_name(object: object) -> str:
+def get_package_name(obj: object) -> str:
     """returns the package name for the provided object"""
-    name = inspect.getmodule(object).__name__  # type: ignore
+    mod = inspect.getmodule(obj)
+    name = getattr(mod, "__name__", "")
     return name.split(".")[0]
 
 
@@ -38,7 +39,7 @@ def get_version_for_package(package: str | types.ModuleType) -> str | None:
     elif inspect.ismodule(package):
         mod = package
     else:
-        msg = f"Unknown type, package {package}"
+        msg = f"Unknown type, package {package}"  # type: ignore[unreachable]
         raise ValueError(msg)
 
     vn = None
@@ -64,7 +65,7 @@ class CachingLogger:
 
     def __init__(
         self,
-        log_file_path: os.PathLike | None = None,
+        log_file_path: str | os.PathLike[str] | None = None,
         create_dir: bool = True,
         mode: str = "w",
     ) -> None:
@@ -73,8 +74,9 @@ class CachingLogger:
         self._messages: list[str] = []
         self._hostname = socket.gethostname()
         self._mode = mode
-        self._log_file_path = None
-        self._logfile = None
+        self._log_file_path: str | None = None
+        self._logger: logging.Logger | None = None
+        self._logfile: logging.Handler | None = None
         if log_file_path:
             self.log_file_path = log_file_path
 
@@ -83,18 +85,21 @@ class CachingLogger:
         self._started = False
         self._messages = []
         if self._logfile is not None:
+            if self._logger is not None:
+                self._logger.removeHandler(self._logfile)
             self._logfile.flush()
             self._logfile.close()
             self._logfile = None
 
+        self._logger = None
         self._log_file_path = None
 
     @property
-    def log_file_path(self):
+    def log_file_path(self) -> str | None:
         return self._log_file_path
 
     @log_file_path.setter
-    def log_file_path(self, path: str) -> None:
+    def log_file_path(self, path: str | os.PathLike[str]) -> None:
         """set the log file path and then dump cached log messages"""
         if self._log_file_path is not None:
             msg = f"log_file_path already defined as {self._log_file_path}"
@@ -106,15 +111,17 @@ class CachingLogger:
 
         self._log_file_path = str(log_path)
 
-        self._logfile = set_logger(self._log_file_path, mode=self.mode)
+        logger_name = "scitrack." + str(log_path).replace(os.sep, "_").replace(".", "_")
+        self._logger = logging.getLogger(logger_name)
+        self._logfile = set_logger(log_path, mode=self.mode, logger=self._logger)
         for m in self._messages:
-            logging.info(m)
+            self._logger.info(m)
 
         self._messages = []
         self._started = True
 
     @property
-    def mode(self):
+    def mode(self) -> str:
         """the logfile opening mode"""
         return self._mode
 
@@ -151,7 +158,9 @@ class CachingLogger:
             - label is inserted before the message
 
         For this to be useful you must ensure the text order is persistent."""
-        assert label is not None, "You must provide a data label"
+        if label is None:
+            msg = "text_data requires a non-None label"
+            raise ValueError(msg)
         md5sum = get_text_hexdigest(data)
         self.log_message(md5sum, label=label)
 
@@ -163,19 +172,20 @@ class CachingLogger:
         label = label or "misc"
         data = [label, msg]
         msg = " : ".join(data)
-        if not self._started:
+        if not self._started or self._logger is None:
             self._messages.append(msg)
         else:
-            logging.info(msg)
+            self._logger.info(msg)
 
-    def log_args(self, args: dict | None = None) -> None:
+    def log_args(self, args: dict[str, object] | None = None) -> None:
         """save arguments to file using label='params'
         Argument:
             - args: if None, uses inspect module to get locals
               from the calling frame"""
         if args is None:
-            parent = inspect.currentframe().f_back
-            args = inspect.getargvalues(parent).locals
+            frame = inspect.currentframe()
+            parent = frame.f_back if frame is not None else None
+            args = inspect.getargvalues(parent).locals if parent is not None else {}
 
         result = {
             k: args[k]
@@ -187,8 +197,6 @@ class CachingLogger:
 
     def shutdown(self) -> None:
         """safely shutdown the logger"""
-        if self._logfile:
-            logging.getLogger().removeHandler(self._logfile)
         self._reset()
 
     def log_versions(self, packages: list[str] | str | None = None) -> None:
@@ -198,7 +206,7 @@ class CachingLogger:
         if isinstance(packages, str) or inspect.ismodule(packages):
             to_check = [packages]
         elif isinstance(packages, (list, tuple)):
-            to_check = packages
+            to_check.extend(packages)
 
         for i, p in enumerate(to_check):
             if inspect.ismodule(p):
@@ -218,8 +226,8 @@ class CachingLogger:
         if name:
             vn = get_version_for_package(name)
         else:
-            vn = [g[v] for v in VERSION_ATTRS if g.get(v, None)]
-            vn = vn[0] if vn else None
+            candidates = [g[v] for v in VERSION_ATTRS if g.get(v, None)]
+            vn = candidates[0] if candidates else None
             name = get_package_name(parent)
 
         versions = [(name, vn)]
@@ -234,20 +242,25 @@ class CachingLogger:
 
 
 def set_logger(
-    log_file_path: str | os.PathLike,
+    log_file_path: str | os.PathLike[str],
     level: int = logging.DEBUG,
     mode: str = "w",
+    logger: logging.Logger | None = None,
 ) -> logging.Handler:
-    """setup logging"""
+    """attach a file handler to ``logger`` (or the package logger by default)
+
+    Writes a header block (system, python, user, command_string) to the file.
+    """
+    if logger is None:
+        logger = logging.getLogger("scitrack")
     handler = logging.FileHandler(log_file_path, mode)
     handler.setLevel(level)
     hostpid = f"{socket.gethostname()}:{os.getpid()}"
     fmt = "%(asctime)s\t" + hostpid + "\t%(levelname)s\t%(message)s"
     formatter = logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S")
     handler.setFormatter(formatter)
-    logging.root.addHandler(handler)
-    logging.root.setLevel(level)
-    logger = logging.getLogger(handler.name)
+    logger.addHandler(handler)
+    logger.setLevel(level)
     logger.info(f"system_details : system={platform.version()}")
     logger.info(f"python : {platform.python_version()}")
     logger.info(f"user : {getuser()}")
@@ -255,7 +268,7 @@ def set_logger(
     return handler
 
 
-def get_file_hexdigest(filename: str | os.PathLike) -> str:
+def get_file_hexdigest(filename: str | os.PathLike[str]) -> str:
     """returns the md5 hexadecimal checksum of the file
 
     NOTE
@@ -266,7 +279,7 @@ def get_file_hexdigest(filename: str | os.PathLike) -> str:
     """
     # from
     # http://stackoverflow.com/questions/1131220/get-md5-hash-of-big-files-in-python
-    with open(filename, "rb") as infile:
+    with Path(filename).open("rb") as infile:
         md5 = hashlib.md5(usedforsecurity=False)
         while True:
             if data := infile.read(128):
@@ -291,7 +304,7 @@ def get_text_hexdigest(data: str | bytes) -> str:
     elif isinstance(data, bytes):
         data_bytes = data
     else:
-        msg = "can only checksum string, unicode or bytes data"
+        msg = "can only checksum string, unicode or bytes data"  # type: ignore[unreachable]
         raise TypeError(msg)
 
     md5 = hashlib.md5(usedforsecurity=False)
