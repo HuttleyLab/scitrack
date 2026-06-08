@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "scitrack"
 dynamic = ["version"]
 description = "Basic logging capabilities to track scientific computations."
-readme = "README.rst"
+readme = "README.md"
 license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 authors = [{ name = "Gavin Huttley", email = "Gavin.Huttley@anu.edu.au" }]
@@ -42,7 +42,7 @@ path = "src/scitrack/__init__.py"
 packages = ["src/scitrack"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/scitrack", "pyproject.toml", "README.rst", "LICENSE"]
+include = ["src/scitrack", "pyproject.toml", "README.md", "LICENSE"]
 exclude = ["**/*.xml", "**/__pycache__"]
 
 [tool.mypy]
