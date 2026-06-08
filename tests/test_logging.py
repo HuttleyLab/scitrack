@@ -318,6 +318,15 @@ def test_logging_text(logfile):
     assert hexd in unique
 
 
+def test_text_data_requires_label(logfile):
+    """text_data raises ValueError when label is omitted"""
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    with pytest.raises(ValueError, match="non-None label"):
+        LOGGER.text_data("anything")
+    LOGGER.shutdown()
+
+
 def test_logfile_path(logfile):
     """correctly assigned"""
     LOGGER = CachingLogger(create_dir=True, log_file_path=logfile)

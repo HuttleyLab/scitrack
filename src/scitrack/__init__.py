@@ -158,7 +158,9 @@ class CachingLogger:
             - label is inserted before the message
 
         For this to be useful you must ensure the text order is persistent."""
-        assert label is not None, "You must provide a data label"
+        if label is None:
+            msg = "text_data requires a non-None label"
+            raise ValueError(msg)
         md5sum = get_text_hexdigest(data)
         self.log_message(md5sum, label=label)
 
