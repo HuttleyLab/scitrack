@@ -97,9 +97,50 @@ The `log_versions()` method captures versions for the current file and that of a
 2020-05-25 13:32:07	Eratosthenes:98447	INFO	input_file_path md5sum : 96eb2c2632bae19eb65ea9224aaafdad
 ```
 
+## Summarising a log file
+
+`log_summary()` parses a written log file and returns its entries grouped by label, in the order they appear:
+
+```python
+from scitrack import log_summary
+
+summary = log_summary("some_path.log")
+print(summary["input_file_path"])
+# ['/path/to/input1.fasta', '/path/to/input2.fasta']
+print(summary["input_file_path md5sum"])
+# ['96eb2c2632bae19eb65ea9224aaafdad', ...]
+```
+
+By default only labels emitted by `scitrack` itself are captured: `system_details`, `python`, `user`, `command_string`, `params`, `version`, `input_file_path`, `output_file_path`, the corresponding ` md5sum` lines, and `misc`. Lines under any other label are skipped silently. Two keyword arguments relax this:
+
+- `labels=[...]` — opt in to additional, application-specific labels that your code emits via `LOGGER.log_message(msg, label="...")`.
+- `all_labels=True` — capture every label encountered in the file.
+
+### Project-specific summaries
+
+Because `log_summary()` returns a plain `dict[str, list[str]]`, clients can layer their own reporting on top without re-parsing the file. For example, a pipeline that emits custom `dataset_id` and `accuracy` entries can produce a project-tailored report:
+
+```python
+from scitrack import log_summary
+
+summary = log_summary(
+    "path/to/run.log",
+    labels=["dataset_id", "accuracy"],
+)
+
+print(f"Run by {summary['user'][0]} on Python {summary['python'][0]}")
+print(f"Command: {summary['command_string'][0]}")
+print(f"Inputs:  {len(summary.get('input_file_path', []))}")
+print(f"Outputs: {len(summary.get('output_file_path', []))}")
+for dataset, accuracy in zip(summary["dataset_id"], summary["accuracy"]):
+    print(f"  {dataset}: accuracy={accuracy}")
+```
+
+This makes it straightforward to summarise application logs, making it useful for many things including provenance reports for users.
+
 ## Other useful functions
 
-Two other useful functions are `get_file_hexdigest` and `get_text_hexdigest`.
+Two other useful functions are `get_file_hexdigest()` and `get_text_hexdigest()` compute md5sum for files or text. Those can be used to validate the state recorded in the log-file matches results at a later date, e.g. `output_file()` records the path and md5sum of an output file.
 
 ## Reporting issues
 
