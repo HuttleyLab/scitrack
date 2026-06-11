@@ -12,6 +12,7 @@ from scitrack import (
     __version__,
     get_file_hexdigest,
     get_package_dependencies,
+    get_package_licenses,
     get_package_name,
     get_text_hexdigest,
     get_version_for_package,
@@ -1119,6 +1120,18 @@ def test_log_summary_multiple_entries_preserve_order(tmp_path):
     assert log_summary(log) == {"version": ["a==1", "b==2", "c==3"]}
 
 
+def test_log_summary_recognises_license_label(tmp_path):
+    """license lines emitted by log_licenses are captured by default"""
+    log = tmp_path / "lic.log"
+    log.write_text(
+        "2026-06-09 10:00:00\thost:1\tINFO\tlicense : scitrack==BSD-3-Clause\n"
+        "2026-06-09 10:00:00\thost:1\tINFO\tlicense : numpy==BSD-3-Clause\n",
+    )
+    assert log_summary(log) == {
+        "license": ["scitrack==BSD-3-Clause", "numpy==BSD-3-Clause"],
+    }
+
+
 def test_log_summary_all_labels_captures_unknown(tmp_path):
     """all_labels=True records every label, including ones not in the recognised set"""
     log = tmp_path / "all.log"
@@ -1138,3 +1151,213 @@ def test_log_summary_all_labels_captures_unknown(tmp_path):
         "bespoke_tag": ["x"],
         "another_tag": ["y"],
     }
+
+
+def test_loglabel_license_value():
+    # LogLabel exposes a LICENSE member that formats as "license"
+    assert LogLabel.LICENSE == "license"
+    assert f"{LogLabel.LICENSE}" == "license"
+
+
+def test_get_package_licenses_returns_dict_for_installed():
+    # returns a {name: license_string} mapping for installed packages
+    got = get_package_licenses(["pytest"])
+    assert set(got) == {"pytest"}
+    assert isinstance(got["pytest"], str)
+    assert got["pytest"]
+
+
+def test_get_package_licenses_raises_for_uninstalled():
+    # uninstalled package name -> PackageNotFoundError carrying the name
+    from importlib.metadata import PackageNotFoundError
+
+    with pytest.raises(PackageNotFoundError, match="definitely_not_installed_xyz"):
+        get_package_licenses(["definitely_not_installed_xyz"])
+
+
+def test_get_package_licenses_prefers_license_expression(monkeypatch):
+    # PEP 639 License-Expression wins when both fields are present
+    monkeypatch.setattr(
+        _scitrack.importlib.metadata,
+        "metadata",
+        lambda _: {"License-Expression": "MIT", "License": "Apache-2.0"},
+    )
+    assert get_package_licenses(["anything"]) == {"anything": "MIT"}
+
+
+def test_get_package_licenses_falls_back_to_license(monkeypatch):
+    # legacy License field is used when License-Expression is missing
+    monkeypatch.setattr(
+        _scitrack.importlib.metadata,
+        "metadata",
+        lambda _: {"License": "BSD-3-Clause"},
+    )
+    assert get_package_licenses(["anything"]) == {"anything": "BSD-3-Clause"}
+
+
+def test_get_package_licenses_unknown_when_missing(monkeypatch):
+    # neither License-Expression nor License declared -> "UNKNOWN"
+    monkeypatch.setattr(_scitrack.importlib.metadata, "metadata", lambda _: {})
+    assert get_package_licenses(["anything"]) == {"anything": "UNKNOWN"}
+
+
+@pytest.mark.parametrize(
+    "meta",
+    [
+        pytest.param({"License-Expression": "", "License": "MIT"}, id="empty_expr"),
+        pytest.param(
+            {"License-Expression": "UNKNOWN", "License": "MIT"},
+            id="sentinel_expr",
+        ),
+    ],
+)
+def test_get_package_licenses_falls_through_empty_or_sentinel(monkeypatch, meta):
+    # an empty or literal-"UNKNOWN" License-Expression falls through to License
+    monkeypatch.setattr(_scitrack.importlib.metadata, "metadata", lambda _: meta)
+    assert get_package_licenses(["anything"]) == {"anything": "MIT"}
+
+
+def test_get_package_licenses_partial_raises_eagerly(monkeypatch):
+    # a missing name in the middle of the list raises rather than returning a partial dict
+    from importlib.metadata import PackageNotFoundError
+
+    def fake_metadata(name):
+        if name == "definitely_not_installed_xyz":
+            raise PackageNotFoundError(name)
+        return {"License": "MIT"}
+
+    monkeypatch.setattr(_scitrack.importlib.metadata, "metadata", fake_metadata)
+    with pytest.raises(PackageNotFoundError, match="definitely_not_installed_xyz"):
+        get_package_licenses(["pkg_a", "definitely_not_installed_xyz", "pkg_b"])
+
+
+def test_log_licenses_uses_caller_package(monkeypatch, logfile):
+    # caller's package is resolved from frame globals and its license is logged
+    monkeypatch.setattr(
+        _scitrack,
+        "_license_for_package",
+        lambda name: {"scitrack": "BSD-3-Clause"}[name],
+    )
+    monkeypatch.setattr(
+        _scitrack,
+        "get_package_dependencies",
+        lambda name, *, if_installed: {},
+    )
+
+    class _Parent:
+        f_globals = {"__name__": "scitrack"}
+
+    class _Frame:
+        f_back = _Parent()
+
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: _Frame())
+
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    LOGGER.log_licenses()
+    LOGGER.shutdown()
+
+    contents = logfile.read_text()
+    assert "\tlicense : scitrack==BSD-3-Clause" in contents
+
+
+def test_log_licenses_emits_installed_deps(monkeypatch, logfile):
+    # caller's deps (resolved with if_installed=True) are flattened into license lines
+    captured: dict[str, object] = {}
+
+    def fake_deps(name, *, if_installed):
+        captured["name"] = name
+        captured["if_installed"] = if_installed
+        return {"core": ["pkg_a"], "dev": ["pkg_b"]}
+
+    licenses = {"scitrack": "BSD-3-Clause", "pkg_a": "MIT", "pkg_b": "Apache-2.0"}
+    monkeypatch.setattr(_scitrack, "get_package_dependencies", fake_deps)
+    monkeypatch.setattr(_scitrack, "_license_for_package", lambda n: licenses[n])
+
+    class _Parent:
+        f_globals = {"__name__": "scitrack"}
+
+    class _Frame:
+        f_back = _Parent()
+
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: _Frame())
+
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    LOGGER.log_licenses()
+    LOGGER.shutdown()
+
+    contents = logfile.read_text()
+    assert "pkg_a==MIT" in contents
+    assert "pkg_b==Apache-2.0" in contents
+    assert captured == {"name": "scitrack", "if_installed": True}
+
+
+def test_log_licenses_partial_list_raises_eagerly(logfile):
+    # mixed list: bad name aborts before any "license :" line is written
+    from importlib.metadata import PackageNotFoundError
+
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    with pytest.raises(PackageNotFoundError, match="definitely_not_installed_xyz"):
+        LOGGER.log_licenses(["pytest", "definitely_not_installed_xyz"])
+    LOGGER.shutdown()
+    assert not any("license :" in line for line in logfile.read_text().splitlines())
+
+
+def test_log_licenses_caller_first_then_alphabetical_dedup(monkeypatch, logfile):
+    # caller's line precedes the union; the union is alphabetical and de-duplicated
+    monkeypatch.setattr(
+        _scitrack,
+        "get_package_dependencies",
+        lambda name, *, if_installed: {"core": ["zeta", "alpha"], "dev": ["alpha"]},
+    )
+    licenses = {
+        "scitrack": "BSD-3-Clause",
+        "alpha": "MIT",
+        "mid": "Apache-2.0",
+        "zeta": "GPL-3.0",
+    }
+    monkeypatch.setattr(_scitrack, "_license_for_package", lambda n: licenses[n])
+
+    class _Parent:
+        f_globals = {"__name__": "scitrack"}
+
+    class _Frame:
+        f_back = _Parent()
+
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: _Frame())
+
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    LOGGER.log_licenses(["mid", "alpha", "scitrack"])
+    LOGGER.shutdown()
+
+    license_lines = [
+        ln.split("\tlicense : ", 1)[1]
+        for ln in logfile.read_text().splitlines()
+        if "\tlicense : " in ln
+    ]
+    assert license_lines == [
+        "scitrack==BSD-3-Clause",
+        "alpha==MIT",
+        "mid==Apache-2.0",
+        "zeta==GPL-3.0",
+    ]
+
+
+@pytest.mark.parametrize(
+    "make_frame",
+    [
+        pytest.param(lambda: None, id="no_current_frame"),
+        pytest.param(lambda: type("_F", (), {"f_back": None})(), id="no_parent_frame"),
+    ],
+)
+def test_log_licenses_silent_on_frame_failure(monkeypatch, logfile, make_frame):
+    # restricted runtimes (None) and top-of-stack callers (f_back is None) both no-op
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", make_frame)
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    LOGGER.log_licenses()
+    LOGGER.shutdown()
+    assert not any("license :" in line for line in logfile.read_text().splitlines())

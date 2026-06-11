@@ -81,7 +81,9 @@ The `CachingLogger.write()` method takes a message and a label. All other loggin
 
 The `log_args()` method captures all local variables within a scope.
 
-The `log_versions()` method captures the version of the caller's own package, the versions of its currently installed declared dependencies (across `core` and every extras group), and the versions of any additional named packages, e.g. `LOGGER.log_versions(['numpy', 'sklearn'])`. The dependency set and the user-supplied list are deduplicated before logging, and the resulting lines are emitted with the caller's own version line first, followed by the rest in alphabetical order. A name supplied via `packages` that is neither installed nor importable raises `PackageNotFoundError`.
+The `log_versions()` method captures the version of the caller's own package, the versions of its currently installed declared dependencies (across `core` and every extras group), and the versions of any additional named packages, e.g. `LOGGER.log_versions(['numpy', 'sklearn'])`. A name supplied via `packages` that is neither installed nor importable raises `PackageNotFoundError`.
+
+The `log_licenses()` method mirrors `log_versions()` but emits the declared license of each package under the `license` label. The license is resolved from package metadata, preferring the PEP 639 `License-Expression` field over the legacy `License` field; if neither is declared the value is recorded as `UNKNOWN`. A name supplied via `packages` that is not installed raises `PackageNotFoundError`.
 
 ### Some sample output
 
@@ -111,7 +113,7 @@ print(summary["input_file_path md5sum"])
 # ['96eb2c2632bae19eb65ea9224aaafdad', ...]
 ```
 
-By default only labels emitted by `scitrack` itself are captured: `system_details`, `python`, `user`, `command_string`, `params`, `version`, `input_file_path`, `output_file_path`, the corresponding ` md5sum` lines, and `misc`. Lines under any other label are skipped silently. Two keyword arguments relax this:
+By default only labels emitted by `scitrack` itself are captured: `system_details`, `python`, `user`, `command_string`, `params`, `version`, `license`, `input_file_path`, `output_file_path`, the corresponding ` md5sum` lines, and `misc`. Lines under any other label are skipped silently. Two keyword arguments relax this:
 
 - `labels=[...]` — opt in to additional, application-specific labels that your code emits via `LOGGER.log_message(msg, label="...")`.
 - `all_labels=True` — capture every label encountered in the file.
@@ -141,6 +143,8 @@ This makes it straightforward to summarise application logs, making it useful fo
 ## Other useful functions
 
 Two other useful functions are `get_file_hexdigest()` and `get_text_hexdigest()` compute md5sum for files or text. Those can be used to validate the state recorded in the log-file matches results at a later date, e.g. `output_file()` records the path and md5sum of an output file.
+
+`get_package_licenses(packages)` returns a `{name: license}` mapping for a list of installed packages, raising `PackageNotFoundError` eagerly if any name is not installed.
 
 ## Reporting issues
 

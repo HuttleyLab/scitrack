@@ -14,6 +14,7 @@ import re
 import socket
 import sys
 import types
+from collections.abc import Callable
 from enum import Enum
 from getpass import getuser
 from pathlib import Path
@@ -35,6 +36,7 @@ class LogLabel(str, Enum):
     MISC = "misc"
     PARAMS = "params"
     VERSION = "version"
+    LICENSE = "license"
     INPUT_FILE = "input_file_path"
     OUTPUT_FILE = "output_file_path"
     MD5SUM = "md5sum"
@@ -332,6 +334,49 @@ def get_package_dependencies(
     return result
 
 
+def _license_for_package(package: str) -> str:
+    """resolve the license string for an installed package.
+
+    Notes
+    -----
+    Prefers PEP 639 ``License-Expression`` over the legacy ``License``
+    field; returns ``"UNKNOWN"`` if neither is declared, if both are
+    empty, or if a field carries the literal sentinel ``"UNKNOWN"`` that
+    older sdists write into ``PKG-INFO``. Propagates
+    ``PackageNotFoundError`` from ``importlib.metadata.metadata`` when
+    the distribution is not installed.
+    """
+    meta = importlib.metadata.metadata(package)
+    for field in ("License-Expression", "License"):
+        if field in meta:
+            value = meta[field]
+            if value and value.strip().upper() != "UNKNOWN":
+                return value
+    return "UNKNOWN"
+
+
+def get_package_licenses(packages: list[str]) -> dict[str, str]:
+    """returns the declared license of each named installed package
+
+    Parameters
+    ----------
+    packages
+        Distribution names to look up.
+
+    Returns
+    -------
+    dict[str, str]
+        Mapping of each name to its license string. Missing license
+        metadata yields ``"UNKNOWN"``.
+
+    Notes
+    -----
+    Raises ``PackageNotFoundError`` eagerly on the first uninstalled
+    name, so callers never see a partial result.
+    """
+    return {name: _license_for_package(name) for name in packages}
+
+
 class CachingLogger:
     """stores log messages until a log filename is provided"""
 
@@ -484,6 +529,71 @@ class CachingLogger:
         """safely shutdown the logger"""
         self._reset()
 
+    def _log_metadata(
+        self,
+        packages: list[str] | str | types.ModuleType | None,
+        value_for: Callable[[str], str | None],
+        label: LogLabel,
+        *,
+        accept_modules: bool,
+    ) -> None:
+        """shared body for ``log_versions``/``log_licenses``.
+
+        Notes
+        -----
+        Resolves the caller's installed package, unions its installed
+        dependencies with ``packages``, resolves each name via
+        ``value_for``, then emits ``name==value`` lines under ``label``
+        with the caller first, the rest alphabetical. Lookups happen
+        eagerly so a failed resolution aborts before any line is written.
+        """
+        frame: types.FrameType | None = inspect.currentframe()
+        if frame is None:
+            return
+
+        parent = frame.f_back
+        del frame
+        if parent is None:
+            return
+
+        caller_name = _installed_package_from_globals(parent.f_globals)
+        del parent
+        caller_value: str | None = None
+        if caller_name:
+            try:
+                caller_value = value_for(caller_name)
+            except importlib.metadata.PackageNotFoundError:
+                caller_name = ""
+
+        if packages is None:
+            user_list: list[str | types.ModuleType] = []
+        elif isinstance(packages, str) or (
+            accept_modules and inspect.ismodule(packages)
+        ):
+            user_list = [packages]
+        else:
+            user_list = list(packages)
+
+        user_names = {
+            (p.__name__.split(".")[0] if inspect.ismodule(p) else p) for p in user_list
+        }
+
+        deps = (
+            get_package_dependencies(caller_name, if_installed=True)
+            if caller_name
+            else {}
+        )
+        dep_names: set[str] = {n for names in deps.values() for n in names}
+
+        entries: list[tuple[str, str | None]] = []
+        if caller_name:
+            entries.append((caller_name, caller_value))
+        for pkg in sorted((dep_names | user_names) - {caller_name}):
+            entries.append((pkg, value_for(pkg)))
+
+        for name, value in entries:
+            self.log_message(f"{name}=={value}", label=label)
+
     def log_versions(self, packages: list[str] | str | None = None) -> None:
         """logs the caller's package, its installed dependencies, and named packages
 
@@ -504,50 +614,37 @@ class CachingLogger:
         after the caller's own version line. A name in ``packages`` that
         is not installed raises ``PackageNotFoundError``.
         """
-        frame: types.FrameType | None = inspect.currentframe()
-        if frame is None:
-            return
-
-        parent = frame.f_back
-        del frame
-        if parent is None:
-            return
-
-        caller_name = _installed_package_from_globals(parent.f_globals)
-        del parent
-        caller_version: str | None = None
-        if caller_name:
-            try:
-                caller_version = get_version_for_package(caller_name)
-            except importlib.metadata.PackageNotFoundError:
-                caller_name = ""
-
-        if packages is None:
-            user_list: list[str | types.ModuleType] = []
-        elif isinstance(packages, str) or inspect.ismodule(packages):
-            user_list = [packages]
-        else:
-            user_list = list(packages)
-
-        user_names = {
-            (p.__name__.split(".")[0] if inspect.ismodule(p) else p) for p in user_list
-        }
-
-        deps = (
-            get_package_dependencies(caller_name, if_installed=True)
-            if caller_name
-            else {}
+        self._log_metadata(
+            packages,
+            get_version_for_package,
+            LogLabel.VERSION,
+            accept_modules=True,
         )
-        dep_names: set[str] = {n for names in deps.values() for n in names}
 
-        versions: list[tuple[str, str | None]] = []
-        if caller_name:
-            versions.append((caller_name, caller_version))
-        for pkg in sorted((dep_names | user_names) - {caller_name}):
-            versions.append((pkg, get_version_for_package(pkg)))
+    def log_licenses(self, packages: list[str] | str | None = None) -> None:
+        """logs the caller's package, its installed dependencies, and named packages
 
-        for name, vn in versions:
-            self.log_message(f"{name}=={vn}", label=LogLabel.VERSION)
+        Parameters
+        ----------
+        packages
+            Additional package names whose licenses should also be logged.
+
+        Notes
+        -----
+        Mirrors ``log_versions``: the caller's installed package is
+        resolved from frame globals, its installed dependencies are
+        fetched via ``get_package_dependencies(..., if_installed=True)``,
+        and that set is union-ed with ``packages`` then emitted in
+        alphabetical order after the caller's own license line. A name
+        in ``packages`` that is not installed raises
+        ``PackageNotFoundError``.
+        """
+        self._log_metadata(
+            packages,
+            _license_for_package,
+            LogLabel.LICENSE,
+            accept_modules=False,
+        )
 
 
 def set_logger(
