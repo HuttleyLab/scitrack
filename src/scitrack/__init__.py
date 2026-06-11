@@ -46,11 +46,47 @@ class LogLabel(str, Enum):
         return str(self.value)
 
 
-def get_package_name(obj: object) -> str:
-    """returns the package name for the provided object"""
-    mod = inspect.getmodule(obj)
-    name = getattr(mod, "__name__", "")
-    return name.split(".")[0]
+def get_package_name(obj: object | None = None) -> str:
+    """returns the top-level package name
+
+    Parameters
+    ----------
+    obj
+        Any object whose defining module's top-level package name is
+        wanted. If ``None``, the caller's frame is used instead.
+
+    Returns
+    -------
+    str
+        The top-level package name, or ``""`` when it cannot be
+        resolved.
+
+    Notes
+    -----
+    When no object is provided, the package name is inferred from the
+    caller's frame, and is only returned if that package is installed.
+    For any non-installed package, ``""`` is returned.
+    """
+    if obj is not None:
+        mod = inspect.getmodule(obj)
+        name = getattr(mod, "__name__", "")
+        return name.split(".")[0]
+
+    frame = inspect.currentframe()
+    parent = frame.f_back if frame is not None else None
+    if parent is None:
+        return ""
+
+    g = parent.f_globals
+    candidate = g.get("__package__") or g.get("__name__") or ""
+    top = candidate.split(".")[0]
+    if not top or top == "__main__":
+        return ""
+    try:
+        importlib.metadata.distribution(top)
+    except importlib.metadata.PackageNotFoundError:
+        return ""
+    return top
 
 
 def _version_via_metadata(name: str) -> str | None:

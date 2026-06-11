@@ -108,6 +108,91 @@ def test_package_inference():
     assert name == "scitrack"
 
 
+def test_get_package_name_no_arg_installed_package(monkeypatch):
+    # no-arg call returns the caller's installed package name
+
+    class _Parent:
+        f_globals = {"__package__": "scitrack", "__name__": "scitrack"}
+
+    class _Frame:
+        f_back = _Parent()
+
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: _Frame())
+    assert get_package_name() == "scitrack"
+
+
+def test_get_package_name_no_arg_subpackage(monkeypatch):
+    # dotted subpackage collapses to its top-level distribution name
+
+    class _Parent:
+        f_globals = {"__package__": "scitrack.sub", "__name__": "scitrack.sub"}
+
+    class _Frame:
+        f_back = _Parent()
+
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: _Frame())
+    assert get_package_name() == "scitrack"
+
+
+def test_get_package_name_no_arg_falls_back_to_name(monkeypatch):
+    # when __package__ is empty, fall back to __name__
+
+    class _Parent:
+        f_globals = {"__package__": "", "__name__": "scitrack"}
+
+    class _Frame:
+        f_back = _Parent()
+
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: _Frame())
+    assert get_package_name() == "scitrack"
+
+
+def test_get_package_name_no_arg_not_installed(monkeypatch):
+    # caller's package is not an installed distribution
+
+    class _Parent:
+        f_globals = {
+            "__package__": "not_a_real_pkg_xyz",
+            "__name__": "not_a_real_pkg_xyz",
+        }
+
+    class _Frame:
+        f_back = _Parent()
+
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: _Frame())
+    assert get_package_name() == ""
+
+
+def test_get_package_name_no_arg_main_script(monkeypatch):
+    # script run directly (__name__ == "__main__") is not a package
+
+    class _Parent:
+        f_globals = {"__package__": None, "__name__": "__main__"}
+
+    class _Frame:
+        f_back = _Parent()
+
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: _Frame())
+    assert get_package_name() == ""
+
+
+def test_get_package_name_no_arg_no_current_frame(monkeypatch):
+    # inspect.currentframe() returning None yields ""
+
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: None)
+    assert get_package_name() == ""
+
+
+def test_get_package_name_no_arg_no_parent_frame(monkeypatch):
+    # frame.f_back is None (top-of-stack caller) yields ""
+
+    class _Frame:
+        f_back = None
+
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: _Frame())
+    assert get_package_name() == ""
+
+
 def test_package_versioning():
     """correctly identify versions for specified packages"""
     vn = get_version_for_package("numpy")
