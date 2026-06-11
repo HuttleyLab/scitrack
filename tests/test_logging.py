@@ -462,6 +462,88 @@ def test_get_package_dependencies_three_clause_extra_middle(
     assert get_package_dependencies("scitrack") == expected
 
 
+def test_get_package_dependencies_if_installed_default_unchanged(monkeypatch):
+    # default if_installed=False still returns deps even when not installed
+    monkeypatch.setattr(
+        _scitrack.importlib.metadata,
+        "requires",
+        lambda _: ["definitely_not_installed_xyz", "also_missing_abc"],
+    )
+    assert get_package_dependencies("scitrack") == {
+        "core": ["definitely_not_installed_xyz", "also_missing_abc"],
+    }
+
+
+def test_get_package_dependencies_if_installed_filters_mixed(monkeypatch):
+    # if_installed=True keeps installed names and drops uninstalled ones
+    monkeypatch.setattr(
+        _scitrack.importlib.metadata,
+        "requires",
+        lambda _: ["pytest>=7", "definitely_not_installed_xyz"],
+    )
+    assert get_package_dependencies("scitrack", if_installed=True) == {
+        "core": ["pytest"],
+    }
+
+
+def test_get_package_dependencies_if_installed_drops_empty_group(monkeypatch):
+    # if_installed=True omits a group entirely when none of its deps are installed
+    monkeypatch.setattr(
+        _scitrack.importlib.metadata,
+        "requires",
+        lambda _: [
+            "pytest>=7",
+            "definitely_not_installed_xyz; extra == 'missing'",
+            "another_missing_abc; extra == 'missing'",
+        ],
+    )
+    assert get_package_dependencies("scitrack", if_installed=True) == {
+        "core": ["pytest"],
+    }
+
+
+def test_get_package_dependencies_if_installed_memoizes(monkeypatch):
+    # the same dep name in multiple groups triggers exactly one installation probe
+    monkeypatch.setattr(
+        _scitrack.importlib.metadata,
+        "requires",
+        lambda _: [
+            "pytest>=7",
+            "pytest; extra == 'test'",
+            "pytest; extra == 'dev'",
+        ],
+    )
+    call_counts: dict[str, int] = {}
+    real_distribution = _scitrack.importlib.metadata.distribution
+
+    def counting_distribution(name):
+        call_counts[name] = call_counts.get(name, 0) + 1
+        return real_distribution(name)
+
+    monkeypatch.setattr(
+        _scitrack.importlib.metadata,
+        "distribution",
+        counting_distribution,
+    )
+    result = get_package_dependencies("scitrack", if_installed=True)
+    assert result == {"core": ["pytest"], "test": ["pytest"], "dev": ["pytest"]}
+    assert call_counts == {"pytest": 1}
+
+
+def test_get_package_dependencies_if_installed_empty_requires_no_probe(monkeypatch):
+    # if_installed=True with no requires returns {} and never probes installation state
+    monkeypatch.setattr(_scitrack.importlib.metadata, "requires", lambda _: [])
+    probed: list[str] = []
+
+    def trap(name):
+        probed.append(name)
+        raise AssertionError("installation probe must not be called")
+
+    monkeypatch.setattr(_scitrack.importlib.metadata, "distribution", trap)
+    assert get_package_dependencies("scitrack", if_installed=True) == {}
+    assert probed == []
+
+
 def test_appending(logfile):
     """appending to an existing logfile should work"""
     LOGGER = CachingLogger(create_dir=True)

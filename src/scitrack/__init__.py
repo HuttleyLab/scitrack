@@ -257,13 +257,20 @@ def _evaluate_marker(marker: str) -> bool:
         return True
 
 
-def get_package_dependencies(package: str) -> dict[str, list[str]]:
+def get_package_dependencies(
+    package: str,
+    *,
+    if_installed: bool = False,
+) -> dict[str, list[str]]:
     """returns declared dependencies of an installed package, grouped by install option
 
     Parameters
     ----------
     package
         Distribution name to inspect.
+    if_installed
+        If ``True``, only return dependencies that are installed in the
+        current environment.
 
     Returns
     -------
@@ -277,9 +284,11 @@ def get_package_dependencies(package: str) -> dict[str, list[str]]:
     -----
     Names are stripped of version specifiers, extras and markers.
     Non-extra environment markers are evaluated against the current
-    interpreter; deps whose markers are False are omitted. The deps in
-    each group are those declared in package metadata; install-state of
-    each dependency is not checked.
+    interpreter; deps whose markers are False are omitted. By default
+    the install-state of each dependency is not checked; pass
+    ``if_installed=True`` to filter on it. Within a single call each
+    distinct dependency name is probed at most once, and any group
+    that ends up empty after filtering is omitted from the result.
     """
     try:
         raw = importlib.metadata.requires(package)
@@ -289,6 +298,7 @@ def get_package_dependencies(package: str) -> dict[str, list[str]]:
         return {}
 
     result: dict[str, list[str]] = {}
+    installed_cache: dict[str, bool] = {}
     for entry in raw:
         name, marker = _split_requirement(entry)
         if not name:
@@ -296,6 +306,16 @@ def get_package_dependencies(package: str) -> dict[str, list[str]]:
         extra, residual = _extract_extra(marker)
         if not _evaluate_marker(residual):
             continue
+        if if_installed:
+            if name not in installed_cache:
+                try:
+                    importlib.metadata.distribution(name)
+                except importlib.metadata.PackageNotFoundError:
+                    installed_cache[name] = False
+                else:
+                    installed_cache[name] = True
+            if not installed_cache[name]:
+                continue
         key = extra or "core"
         result.setdefault(key, []).append(name)
     return result
