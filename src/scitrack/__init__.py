@@ -10,6 +10,7 @@ import inspect
 import logging
 import os
 import platform
+import re
 import socket
 import sys
 import types
@@ -138,6 +139,166 @@ def get_version_for_package(package: str | types.ModuleType) -> str | None:
     del mod
 
     return vn
+
+
+_REQ_NAME_RE = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)")
+_EXTRA_CLAUSE_RE = re.compile(r"""^\s*extra\s*==\s*['\"]([^'\"]+)['\"]\s*$""")
+
+
+def _split_requirement(req: str) -> tuple[str, str]:
+    """split a Requires-Dist entry into (name, marker_text)."""
+    head, _, marker = req.partition(";")
+    match = _REQ_NAME_RE.match(head)
+    name = match.group(1) if match else ""
+    return name, marker.strip()
+
+
+def _extract_extra(marker: str) -> tuple[str | None, str]:
+    """find an ``extra == 'X'`` clause and return (extra_name, residual_marker).
+
+    Notes
+    -----
+    The marker is split on top-level ``and`` so an extras clause can be
+    excised without mangling neighbouring clauses; the residual rejoins
+    the remaining clauses with ``and``.
+    """
+    if not marker:
+        return None, marker
+    clauses = re.split(r"\s+and\s+", marker)
+    extra_name: str | None = None
+    residual: list[str] = []
+    for clause in clauses:
+        match = _EXTRA_CLAUSE_RE.match(clause)
+        if match is not None and extra_name is None:
+            extra_name = match.group(1)
+        else:
+            residual.append(clause)
+    return extra_name, " and ".join(residual)
+
+
+def _marker_env() -> dict[str, str]:
+    """current values of supported PEP 508 environment marker variables."""
+    impl = sys.implementation
+    impl_version = f"{impl.version.major}.{impl.version.minor}.{impl.version.micro}"
+    return {
+        "python_version": f"{sys.version_info.major}.{sys.version_info.minor}",
+        "python_full_version": platform.python_version(),
+        "sys_platform": sys.platform,
+        "platform_system": platform.system(),
+        "platform_machine": platform.machine(),
+        "implementation_name": impl.name,
+        "implementation_version": impl_version,
+        "os_name": os.name,
+    }
+
+
+def _version_tuple(value: str) -> tuple[int, ...]:
+    """parse a dotted version string into a comparable tuple of ints."""
+    return tuple(int(p) for p in value.split("."))
+
+
+_ATOM_RE = re.compile(
+    r"""^\s*
+        ([A-Za-z_][A-Za-z0-9_]*)        # variable
+        \s*(==|!=|<=|>=|<|>)\s*          # operator
+        ['\"]([^'\"]+)['\"]              # quoted literal
+        \s*$
+    """,
+    re.VERBOSE,
+)
+_VERSION_VARS = frozenset(
+    {"python_version", "python_full_version", "implementation_version"},
+)
+
+
+def _compare(op: str, a: object, b: object) -> bool:
+    """apply a comparison operator to two equally-typed operands."""
+    if op == "==":
+        return a == b
+    if op == "!=":
+        return a != b
+    if op == "<":
+        return bool(a < b)  # type: ignore[operator]
+    if op == "<=":
+        return bool(a <= b)  # type: ignore[operator]
+    if op == ">":
+        return bool(a > b)  # type: ignore[operator]
+    return bool(a >= b)  # type: ignore[operator]
+
+
+def _eval_atom(atom: str, env: dict[str, str]) -> bool:
+    """evaluate a single ``var <op> 'value'`` clause."""
+    match = _ATOM_RE.match(atom)
+    if match is None:
+        msg = f"unparseable marker atom: {atom!r}"
+        raise ValueError(msg)
+    var, op, literal = match.group(1), match.group(2), match.group(3)
+    if var not in env:
+        msg = f"unsupported marker variable: {var!r}"
+        raise ValueError(msg)
+    actual = env[var]
+    if var in _VERSION_VARS:
+        return _compare(op, _version_tuple(actual), _version_tuple(literal))
+    return _compare(op, actual, literal)
+
+
+def _evaluate_marker(marker: str) -> bool:
+    """evaluate a residual marker; on any parse failure return True (conservative)."""
+    if not marker:
+        return True
+    try:
+        env = _marker_env()
+        or_terms = re.split(r"\s+or\s+", marker)
+        return any(
+            all(_eval_atom(atom, env) for atom in re.split(r"\s+and\s+", term))
+            for term in or_terms
+        )
+    except (ValueError, KeyError, AttributeError):
+        return True
+
+
+def get_package_dependencies(package: str) -> dict[str, list[str]]:
+    """returns declared dependencies of an installed package, grouped by install option
+
+    Parameters
+    ----------
+    package
+        Distribution name to inspect.
+
+    Returns
+    -------
+    dict[str, list[str]]
+        Mapping of install-option to list of dependency package names.
+        Core (unconditional) deps live under ``"core"``; each ``extra ==
+        'X'`` group lives under key ``"X"``. Returns ``{}`` when the
+        package is not installed or declares no dependencies.
+
+    Notes
+    -----
+    Names are stripped of version specifiers, extras and markers.
+    Non-extra environment markers are evaluated against the current
+    interpreter; deps whose markers are False are omitted. The deps in
+    each group are those declared in package metadata; install-state of
+    each dependency is not checked.
+    """
+    try:
+        raw = importlib.metadata.requires(package)
+    except importlib.metadata.PackageNotFoundError:
+        return {}
+    if not raw:
+        return {}
+
+    result: dict[str, list[str]] = {}
+    for entry in raw:
+        name, marker = _split_requirement(entry)
+        if not name:
+            continue
+        extra, residual = _extract_extra(marker)
+        if not _evaluate_marker(residual):
+            continue
+        key = extra or "core"
+        result.setdefault(key, []).append(name)
+    return result
 
 
 class CachingLogger:

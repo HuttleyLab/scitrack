@@ -12,6 +12,7 @@ from scitrack import (
     LogLabel,
     __version__,
     get_file_hexdigest,
+    get_package_dependencies,
     get_package_name,
     get_text_hexdigest,
     get_version_for_package,
@@ -316,6 +317,149 @@ def test_tracks_versions_module(logfile):
     for line in logfile.read_text().splitlines():
         if "version :" in line and "numpy" in line:
             assert expect in line, line
+
+
+def test_get_package_dependencies_not_installed(monkeypatch):
+    # unknown package -> empty dict (never raises)
+    def fake_requires(name):
+        raise _scitrack.importlib.metadata.PackageNotFoundError(name)
+
+    monkeypatch.setattr(_scitrack.importlib.metadata, "requires", fake_requires)
+    assert get_package_dependencies("definitely_not_installed_xyz") == {}
+
+
+@pytest.mark.parametrize("requires_value", [lambda: None, list])
+def test_get_package_dependencies_no_requires(monkeypatch, requires_value):
+    # installed package with no declared deps -> empty dict
+    monkeypatch.setattr(
+        _scitrack.importlib.metadata,
+        "requires",
+        lambda _: requires_value(),
+    )
+    assert get_package_dependencies("scitrack") == {}
+
+
+def test_get_package_dependencies_core_only(monkeypatch):
+    # unconditional deps land under "core", names stripped of specifiers
+    monkeypatch.setattr(
+        _scitrack.importlib.metadata,
+        "requires",
+        lambda _: ["numpy>=1.0", "pandas (>=2.0)"],
+    )
+    assert get_package_dependencies("scitrack") == {"core": ["numpy", "pandas"]}
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "numpy",
+        "numpy>=1.0",
+        "numpy (>=1.0)",
+        "numpy[security]>=1.0",
+        "numpy ; python_version >= '3.0'",
+    ],
+)
+def test_get_package_dependencies_strips_specifiers(monkeypatch, raw):
+    # every surface form of a single requirement collapses to the base name
+    monkeypatch.setattr(_scitrack.importlib.metadata, "requires", lambda _: [raw])
+    assert get_package_dependencies("scitrack") == {"core": ["numpy"]}
+
+
+def test_get_package_dependencies_partitions_extras(monkeypatch):
+    # extras-gated deps go under per-extra keys; core deps stay under "core"
+    monkeypatch.setattr(
+        _scitrack.importlib.metadata,
+        "requires",
+        lambda _: [
+            "numpy>=1.0",
+            "pytest; extra == 'test'",
+            "sphinx; extra == 'docs'",
+        ],
+    )
+    assert get_package_dependencies("scitrack") == {
+        "core": ["numpy"],
+        "test": ["pytest"],
+        "docs": ["sphinx"],
+    }
+
+
+def test_get_package_dependencies_env_marker_drops_false(monkeypatch):
+    # dep gated by a marker that's false in this env is dropped (no empty core)
+    monkeypatch.setattr(
+        _scitrack.importlib.metadata,
+        "requires",
+        lambda _: ["numpy; python_version < '2.0'"],
+    )
+    assert get_package_dependencies("scitrack") == {}
+
+
+def test_get_package_dependencies_env_marker_keeps_true(monkeypatch):
+    # dep gated by a marker that's true in this env is kept under "core"
+    monkeypatch.setattr(
+        _scitrack.importlib.metadata,
+        "requires",
+        lambda _: ["numpy; python_version >= '3.0'"],
+    )
+    assert get_package_dependencies("scitrack") == {"core": ["numpy"]}
+
+
+@pytest.mark.parametrize(
+    ("marker_tail", "expected"),
+    [
+        ("python_version >= '3.0'", {"test": ["pytest"]}),
+        ("python_version < '2.0'", {}),
+    ],
+)
+def test_get_package_dependencies_extras_with_env_marker(
+    monkeypatch,
+    marker_tail,
+    expected,
+):
+    # extras-gated dep is included in its group only when the residual marker passes
+    req = f"pytest; extra == 'test' and {marker_tail}"
+    monkeypatch.setattr(_scitrack.importlib.metadata, "requires", lambda _: [req])
+    assert get_package_dependencies("scitrack") == expected
+
+
+def test_get_package_dependencies_unparseable_marker_kept(monkeypatch):
+    # unparseable marker -> conservative fallback keeps the dep under "core"
+    monkeypatch.setattr(
+        _scitrack.importlib.metadata,
+        "requires",
+        lambda _: ["numpy; this is not a real marker"],
+    )
+    assert get_package_dependencies("scitrack") == {"core": ["numpy"]}
+
+
+@pytest.mark.parametrize(
+    ("marker", "expected"),
+    [
+        (
+            "python_version >= '3.0' and extra == 'test' and python_version >= '3.0'",
+            {"test": ["pytest"]},
+        ),
+        (
+            "python_version < '2.0' and extra == 'test' and python_version >= '3.0'",
+            {},
+        ),
+        (
+            "python_version >= '3.0' and extra == 'test' and python_version < '2.0'",
+            {},
+        ),
+    ],
+)
+def test_get_package_dependencies_three_clause_extra_middle(
+    monkeypatch,
+    marker,
+    expected,
+):
+    # extra clause embedded in a 3-clause and-chain - residual must rejoin with ' and '
+    monkeypatch.setattr(
+        _scitrack.importlib.metadata,
+        "requires",
+        lambda _: [f"pytest; {marker}"],
+    )
+    assert get_package_dependencies("scitrack") == expected
 
 
 def test_appending(logfile):
