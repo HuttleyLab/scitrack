@@ -1,4 +1,3 @@
-import contextlib
 import logging
 import sys
 from collections import Counter
@@ -196,12 +195,22 @@ def test_get_package_name_no_arg_no_parent_frame(monkeypatch):
 
 def test_package_versioning():
     """correctly identify versions for specified packages"""
+    from importlib.metadata import PackageNotFoundError
+
     vn = get_version_for_package("numpy")
     assert type(vn) is str
-    with contextlib.suppress(ValueError):
+    with pytest.raises(PackageNotFoundError, match="gobbledygook"):
         get_version_for_package("gobbledygook")
-    with contextlib.suppress(ValueError):
+    with pytest.raises(ValueError, match="Unknown type"):
         get_version_for_package(1)
+
+
+def test_get_version_for_package_not_installed():
+    # uninstalled package name -> PackageNotFoundError carrying the name
+    from importlib.metadata import PackageNotFoundError
+
+    with pytest.raises(PackageNotFoundError, match="definitely_not_installed_xyz"):
+        get_version_for_package("definitely_not_installed_xyz")
 
 
 def test_tracks_versions(logfile):
@@ -277,6 +286,46 @@ def test_tracks_versions_string(logfile):
     for line in logfile.read_text().splitlines():
         if "version :" in line and "numpy" in line:
             assert expect in line, line
+
+
+def test_log_versions_unknown_package(logfile):
+    # log_versions on an uninstalled name -> PackageNotFoundError
+    from importlib.metadata import PackageNotFoundError
+
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    with pytest.raises(PackageNotFoundError, match="definitely_not_installed_xyz"):
+        LOGGER.log_versions("definitely_not_installed_xyz")
+    LOGGER.shutdown()
+
+
+def test_log_versions_partial_list_raises_eagerly(logfile):
+    # mixed list: bad name aborts before any "version :" line is written
+    from importlib.metadata import PackageNotFoundError
+
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    with pytest.raises(PackageNotFoundError, match="definitely_not_installed_xyz"):
+        LOGGER.log_versions(["numpy", "definitely_not_installed_xyz"])
+    LOGGER.shutdown()
+    assert not any("version :" in line for line in logfile.read_text().splitlines())
+
+
+def test_log_versions_uninstalled_module_does_not_raise(logfile):
+    # an imported module with no installed dist -> no raise; version recorded
+    pyfile = TEST_ROOTDIR / "delme_log.py"
+    pyfile.write_text("__version__ = 'local-only'\n")
+    sys.path.append(str(TEST_ROOTDIR))
+    import delme_log
+
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    LOGGER.log_versions(delme_log)
+    LOGGER.shutdown()
+    pyfile.unlink()
+    assert any(
+        "delme_log==local-only" in line for line in logfile.read_text().splitlines()
+    )
 
 
 def test_get_version_for_package():

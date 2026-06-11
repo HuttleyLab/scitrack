@@ -112,8 +112,7 @@ def get_version_for_package(package: str | types.ModuleType) -> str | None:
         try:
             mod = importlib.import_module(package)
         except ModuleNotFoundError as e:
-            msg = f"Unknown package {package}"
-            raise ValueError(msg) from e
+            raise importlib.metadata.PackageNotFoundError(package) from e
     elif inspect.ismodule(package):
         version = _version_via_metadata(package.__name__.split(".")[0])
         if version is not None:
