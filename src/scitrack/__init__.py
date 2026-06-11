@@ -47,6 +47,28 @@ class LogLabel(str, Enum):
         return str(self.value)
 
 
+def _installed_package_from_globals(g: dict[str, object]) -> str:
+    """top-level installed distribution name from a frame's globals, or ''
+
+    Notes
+    -----
+    Prefers ``__package__`` over ``__name__``, collapses dotted names
+    to their top-level component, skips ``__main__``, and verifies the
+    result is a registered installed distribution.
+    """
+    candidate = g.get("__package__") or g.get("__name__") or ""
+    if not isinstance(candidate, str):
+        return ""
+    top = candidate.split(".")[0]
+    if not top or top == "__main__":
+        return ""
+    try:
+        importlib.metadata.distribution(top)
+    except importlib.metadata.PackageNotFoundError:
+        return ""
+    return top
+
+
 def get_package_name(obj: object | None = None) -> str:
     """returns the top-level package name
 
@@ -77,17 +99,7 @@ def get_package_name(obj: object | None = None) -> str:
     parent = frame.f_back if frame is not None else None
     if parent is None:
         return ""
-
-    g = parent.f_globals
-    candidate = g.get("__package__") or g.get("__name__") or ""
-    top = candidate.split(".")[0]
-    if not top or top == "__main__":
-        return ""
-    try:
-        importlib.metadata.distribution(top)
-    except importlib.metadata.PackageNotFoundError:
-        return ""
-    return top
+    return _installed_package_from_globals(parent.f_globals)
 
 
 def _version_via_metadata(name: str) -> str | None:
@@ -473,18 +485,25 @@ class CachingLogger:
         self._reset()
 
     def log_versions(self, packages: list[str] | str | None = None) -> None:
-        """logs version from the global namespace where
-        method is invoked, plus from any named packages"""
-        to_check: list[str | types.ModuleType] = []
-        if isinstance(packages, str) or inspect.ismodule(packages):
-            to_check = [packages]
-        elif isinstance(packages, (list, tuple)):
-            to_check.extend(packages)
+        """logs the caller's package, its installed dependencies, and named packages
 
-        for i, p in enumerate(to_check):
-            if inspect.ismodule(p):
-                to_check[i] = p.__name__
+        Parameters
+        ----------
+        packages
+            Additional package names (or imported modules) whose versions
+            should also be logged.
 
+        Notes
+        -----
+        The caller's package is resolved via ``get_package_name``. When
+        it is an installed distribution, its declared dependencies
+        (across ``core`` and every extras group) are fetched via
+        ``get_package_dependencies(..., if_installed=True)`` so only
+        currently-installed deps participate. The set of those names is
+        union-ed with ``packages`` and emitted in alphabetical order
+        after the caller's own version line. A name in ``packages`` that
+        is not installed raises ``PackageNotFoundError``.
+        """
         frame: types.FrameType | None = inspect.currentframe()
         if frame is None:
             return
@@ -494,24 +513,41 @@ class CachingLogger:
         if parent is None:
             return
 
-        g = parent.f_globals
-        name = g.get("__package__", g.get("__name__", ""))
-        if name:
-            vn = get_version_for_package(name)
-        else:
-            candidates = [g[v] for v in VERSION_ATTRS if g.get(v, None)]
-            vn = candidates[0] if candidates else None
-            name = get_package_name(parent)
-
-        versions = [(name, vn)]
-        for package in to_check:
-            vn = get_version_for_package(package)
-            versions.append((package, vn))
-
-        for n_v in versions:
-            self.log_message("{}=={}".format(*n_v), label=LogLabel.VERSION)
-
+        caller_name = _installed_package_from_globals(parent.f_globals)
         del parent
+        caller_version: str | None = None
+        if caller_name:
+            try:
+                caller_version = get_version_for_package(caller_name)
+            except importlib.metadata.PackageNotFoundError:
+                caller_name = ""
+
+        if packages is None:
+            user_list: list[str | types.ModuleType] = []
+        elif isinstance(packages, str) or inspect.ismodule(packages):
+            user_list = [packages]
+        else:
+            user_list = list(packages)
+
+        user_names = {
+            (p.__name__.split(".")[0] if inspect.ismodule(p) else p) for p in user_list
+        }
+
+        deps = (
+            get_package_dependencies(caller_name, if_installed=True)
+            if caller_name
+            else {}
+        )
+        dep_names: set[str] = {n for names in deps.values() for n in names}
+
+        versions: list[tuple[str, str | None]] = []
+        if caller_name:
+            versions.append((caller_name, caller_version))
+        for pkg in sorted((dep_names | user_names) - {caller_name}):
+            versions.append((pkg, get_version_for_package(pkg)))
+
+        for name, vn in versions:
+            self.log_message(f"{name}=={vn}", label=LogLabel.VERSION)
 
 
 def set_logger(

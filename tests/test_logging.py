@@ -812,7 +812,7 @@ def test_log_versions_no_parent_frame(monkeypatch, logfile):
 
 
 def test_log_versions_uses_caller_package_name(monkeypatch, logfile):
-    """log_versions resolves the caller's package name and writes its version"""
+    # log_versions resolves the caller's package name and writes its version
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.log_file_path = logfile
 
@@ -828,6 +828,167 @@ def test_log_versions_uses_caller_package_name(monkeypatch, logfile):
 
     contents = logfile.read_text()
     assert "scitrack==" in contents
+
+
+def test_log_versions_emits_installed_deps_of_caller(monkeypatch, logfile):
+    # caller's get_package_dependencies(if_installed=True) is flattened into version lines
+    captured_args: dict[str, object] = {}
+
+    def fake_deps(name, *, if_installed):
+        captured_args["name"] = name
+        captured_args["if_installed"] = if_installed
+        return {"core": ["pkg_a"], "dev": ["pkg_b"]}
+
+    versions = {"scitrack": "9.9.9", "pkg_a": "1.1", "pkg_b": "2.2"}
+    monkeypatch.setattr(_scitrack, "get_package_dependencies", fake_deps)
+    monkeypatch.setattr(_scitrack, "get_version_for_package", lambda n: versions[n])
+
+    class _Parent:
+        f_globals = {"__name__": "scitrack"}
+
+    class _Frame:
+        f_back = _Parent()
+
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: _Frame())
+
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    LOGGER.log_versions()
+    LOGGER.shutdown()
+
+    contents = logfile.read_text()
+    assert "pkg_a==1.1" in contents
+    assert "pkg_b==2.2" in contents
+    assert captured_args == {"name": "scitrack", "if_installed": True}
+
+
+def test_log_versions_dedups_user_pkg_overlapping_dep(monkeypatch, logfile):
+    # a name appearing in both deps and the user list yields exactly one version line
+    monkeypatch.setattr(
+        _scitrack,
+        "get_package_dependencies",
+        lambda name, *, if_installed: {"core": ["pkg_a", "pkg_b"]},
+    )
+    versions = {"scitrack": "9.9.9", "pkg_a": "1.1", "pkg_b": "2.2"}
+    monkeypatch.setattr(_scitrack, "get_version_for_package", lambda n: versions[n])
+
+    class _Parent:
+        f_globals = {"__name__": "scitrack"}
+
+    class _Frame:
+        f_back = _Parent()
+
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: _Frame())
+
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    LOGGER.log_versions(["pkg_a"])
+    LOGGER.shutdown()
+
+    lines = [ln for ln in logfile.read_text().splitlines() if "\tversion :" in ln]
+    pkg_a_lines = [ln for ln in lines if "pkg_a==" in ln]
+    assert len(pkg_a_lines) == 1
+
+
+def test_log_versions_caller_first_then_alphabetical(monkeypatch, logfile):
+    # caller's version line precedes the union, which is emitted in alphabetical order
+    monkeypatch.setattr(
+        _scitrack,
+        "get_package_dependencies",
+        lambda name, *, if_installed: {"core": ["zeta"], "dev": ["alpha"]},
+    )
+    versions = {"scitrack": "9.9.9", "alpha": "0.1", "mid": "0.5", "zeta": "0.9"}
+    monkeypatch.setattr(_scitrack, "get_version_for_package", lambda n: versions[n])
+
+    class _Parent:
+        f_globals = {"__name__": "scitrack"}
+
+    class _Frame:
+        f_back = _Parent()
+
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: _Frame())
+
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    LOGGER.log_versions(["mid"])
+    LOGGER.shutdown()
+
+    version_lines = [
+        ln.split("\tversion : ", 1)[1]
+        for ln in logfile.read_text().splitlines()
+        if "\tversion : " in ln
+    ]
+    assert version_lines == ["scitrack==9.9.9", "alpha==0.1", "mid==0.5", "zeta==0.9"]
+
+
+def test_log_versions_caller_in_user_list_not_duplicated(monkeypatch, logfile):
+    # caller's own name in `packages=` does not double up the caller version line
+    monkeypatch.setattr(
+        _scitrack,
+        "get_package_dependencies",
+        lambda name, *, if_installed: {},
+    )
+    versions = {"scitrack": "9.9.9"}
+    monkeypatch.setattr(_scitrack, "get_version_for_package", lambda n: versions[n])
+
+    class _Parent:
+        f_globals = {"__name__": "scitrack"}
+
+    class _Frame:
+        f_back = _Parent()
+
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: _Frame())
+
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    LOGGER.log_versions(["scitrack"])
+    LOGGER.shutdown()
+
+    version_lines = [
+        ln for ln in logfile.read_text().splitlines() if "\tversion :" in ln
+    ]
+    scitrack_lines = [ln for ln in version_lines if "scitrack==" in ln]
+    assert len(scitrack_lines) == 1
+
+
+def test_log_versions_uninstalled_dep_skipped(monkeypatch, logfile):
+    # uninstalled declared deps are dropped via if_installed=True before logging
+    monkeypatch.setattr(
+        _scitrack.importlib.metadata,
+        "requires",
+        lambda _: ["pkg_installed", "pkg_not_installed"],
+    )
+
+    def fake_distribution(name):
+        if name in {"pkg_installed", "scitrack"}:
+            return
+        raise _scitrack.importlib.metadata.PackageNotFoundError(name)
+
+    monkeypatch.setattr(
+        _scitrack.importlib.metadata,
+        "distribution",
+        fake_distribution,
+    )
+
+    versions = {"scitrack": "9.9.9", "pkg_installed": "1.0"}
+    monkeypatch.setattr(_scitrack, "get_version_for_package", lambda n: versions[n])
+
+    class _Parent:
+        f_globals = {"__name__": "scitrack"}
+
+    class _Frame:
+        f_back = _Parent()
+
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: _Frame())
+
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    LOGGER.log_versions()
+    LOGGER.shutdown()
+
+    contents = logfile.read_text()
+    assert "pkg_installed==1.0" in contents
+    assert "pkg_not_installed" not in contents
 
 
 def _make_session_log(logfile):
@@ -858,7 +1019,7 @@ def test_log_summary_groups_built_in_labels(logfile):
     assert len(summary["system_details"]) == 1
     assert len(summary["input_file_path"]) == 2
     assert len(summary["input_file_path md5sum"]) == 2
-    assert len(summary["version"]) >= 2  # caller package + numpy
+    assert len(summary["version"]) >= 1  # at minimum, numpy from packages=
     assert summary["params"] == ["{'a': 1, 'b': 'abc'}"]
 
 

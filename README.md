@@ -81,7 +81,7 @@ The `CachingLogger.write()` method takes a message and a label. All other loggin
 
 The `log_args()` method captures all local variables within a scope.
 
-The `log_versions()` method captures versions for the current file and that of a list of named packages, e.g. `LOGGER.log_versions(['numpy', 'sklearn'])`.
+The `log_versions()` method captures the version of the caller's own package, the versions of its currently installed declared dependencies (across `core` and every extras group), and the versions of any additional named packages, e.g. `LOGGER.log_versions(['numpy', 'sklearn'])`. The dependency set and the user-supplied list are deduplicated before logging, and the resulting lines are emitted with the caller's own version line first, followed by the rest in alphabetical order. A name supplied via `packages` that is neither installed nor importable raises `PackageNotFoundError`.
 
 ### Some sample output
 
