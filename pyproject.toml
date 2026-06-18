@@ -33,7 +33,7 @@ Documentation = "https://github.com/HuttleyLab/scitrack"
 "Source Code" = "https://github.com/HuttleyLab/scitrack"
 
 [dependency-groups]
-dev = ["numpy", "pytest", "pytest-cov", "ruff==0.15.15", "nox", "mypy>=2.1.0"]
+dev = ["numpy", "pytest", "pytest-cov", "ruff==0.15.17", "nox", "mypy>=2.1.0"]
 
 [tool.hatch.version]
 path = "src/scitrack/__init__.py"
