@@ -831,6 +831,34 @@ def test_log_versions_uses_caller_package_name(monkeypatch, logfile):
     assert "scitrack==" in contents
 
 
+def test_log_versions_resolves_external_caller_package(monkeypatch, logfile):
+    # the real chain is consumer -> log_versions -> _log_metadata, so the
+    # frame above scitrack's own is the true caller. log_versions() must
+    # resolve that consumer package (numpy here) and log its version, rather
+    # than stopping at its immediate scitrack parent
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+
+    class _Consumer:
+        f_globals = {"__name__": "numpy"}
+        f_back = None
+
+    class _Scitrack:
+        f_globals = {"__name__": "scitrack"}
+        f_back = _Consumer()
+
+    class _Frame:
+        f_back = _Scitrack()
+
+    monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: _Frame())
+    LOGGER.log_versions()
+    LOGGER.shutdown()
+
+    expect = f"numpy=={get_version_for_package('numpy')}"
+    contents = logfile.read_text()
+    assert expect in contents
+
+
 def test_log_versions_emits_installed_deps_of_caller(monkeypatch, logfile):
     # caller's get_package_dependencies(if_installed=True) is flattened into version lines
     captured_args: dict[str, object] = {}
