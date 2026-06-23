@@ -737,7 +737,7 @@ def log_summary(
     path
         The log file path.
     labels
-        Extra labels (beyond the built-in ``LogLabel`` to recognise.
+        Extra labels (beyond the built-in ``LogLabel``) to recognise.
         Lines whose label is not in the recognised set are skipped
         silently.
     all_labels
@@ -749,7 +749,29 @@ def log_summary(
     dict[str, list[str]]
         Mapping of label to the list of values emitted under that label,
         in the order they appear in the file.
+
+    Raises
+    ------
+    ValueError
+        If a reserved label (``datetime``, ``hostname`` or ``os``) is
+        requested, either via ``labels`` or an ``all_labels`` capture of a
+        line bearing that label.
+
+    Notes
+    -----
+    The returned mapping also includes reserved keys derived from the log
+    itself: ``datetime`` (timestamp of the first logged line, that is when
+    logging started) and ``hostname`` (host that produced the log, from
+    that line's prefix), both absent only when the file has no parsable
+    lines, plus ``os`` (operating system, from the ``system_details``
+    line) when present. These names are reserved and may not be used as
+    labels.
     """
+    reserved = {"datetime", "hostname", "os"}
+    if labels and (clash := reserved.intersection(labels)):
+        msg = f"reserved labels cannot be requested: {sorted(clash)}"
+        raise ValueError(msg)
+
     recognised: set[str] = {member.value for member in LogLabel}
     recognised.add(f"{LogLabel.INPUT_FILE} {LogLabel.MD5SUM}")
     recognised.add(f"{LogLabel.OUTPUT_FILE} {LogLabel.MD5SUM}")
@@ -763,14 +785,21 @@ def log_summary(
             if not line:
                 continue
             try:
-                _ts, _hostpid, _level, message = line.split("\t", 3)
+                ts, hostpid, _level, message = line.split("\t", 3)
             except ValueError:
                 continue
+            result.setdefault("datetime", [ts])
+            result.setdefault("hostname", [hostpid.rsplit(":", 1)[0]])
             try:
                 label, value = message.split(" : ", 1)
             except ValueError:
                 continue
             if not all_labels and label not in recognised:
                 continue
+            if label in reserved:
+                msg = f"'{label}' is a reserved label in log_summary()"
+                raise ValueError(msg)
             result.setdefault(label, []).append(value)
+            if label == LogLabel.SYSTEM_DETAILS.value:
+                result.setdefault("os", [value.removeprefix("system=")])
     return result

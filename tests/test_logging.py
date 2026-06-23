@@ -1025,6 +1025,18 @@ def _make_session_log(logfile):
     LOGGER.shutdown()
 
 
+# timestamp field of the first line of a scitrack log file
+def _first_line_timestamp(path):
+    first = Path(path).read_text().splitlines()[0]
+    return first.split("\t", 1)[0]
+
+
+# hostname (host portion of the host:pid prefix) of the first line
+def _first_line_hostname(path):
+    first = Path(path).read_text().splitlines()[0]
+    return first.split("\t", 2)[1].rsplit(":", 1)[0]
+
+
 def test_log_summary_groups_built_in_labels(logfile):
     """default call returns every standard scitrack label"""
     _make_session_log(logfile)
@@ -1044,6 +1056,129 @@ def test_log_summary_groups_built_in_labels(logfile):
     assert len(summary["input_file_path md5sum"]) == 2
     assert len(summary["version"]) >= 1  # at minimum, numpy from packages=
     assert summary["params"] == ["{'a': 1, 'b': 'abc'}"]
+
+
+def test_log_summary_includes_datetime(logfile):
+    # datetime value is the timestamp of the first logged line
+    _make_session_log(logfile)
+    summary = log_summary(logfile)
+    assert summary["datetime"] == [_first_line_timestamp(logfile)]
+
+
+def test_log_summary_datetime_is_first_line(tmp_path):
+    # datetime captures only the first line's timestamp, not later ones
+    first_ts = "2026-06-09 10:00:00"
+    later_ts = "2026-06-09 11:30:45"
+    log = tmp_path / "two_times.log"
+    log.write_text(
+        f"{first_ts}\thost:1\tINFO\tparams : alpha\n"
+        f"{later_ts}\thost:1\tINFO\tparams : beta\n",
+    )
+    summary = log_summary(log)
+    assert summary["datetime"] == [first_ts]
+    assert summary["datetime"] != [later_ts]
+
+
+def test_log_summary_datetime_from_unrecognised_first_line(tmp_path):
+    # datetime is taken from the first parsable line even if its label is unknown
+    ts = "2026-06-09 10:00:00"
+    log = tmp_path / "unknown_first.log"
+    log.write_text(
+        f"{ts}\thost:1\tINFO\tnot_a_known_label : ignored\n"
+        f"{ts}\thost:1\tINFO\tparams : kept\n",
+    )
+    summary = log_summary(log)
+    assert summary["datetime"] == [ts]
+
+
+def test_log_summary_empty_file_has_no_datetime(tmp_path):
+    # a file with no parsable lines yields no datetime key
+    empty = tmp_path / "empty.log"
+    empty.write_text("")
+    assert "datetime" not in log_summary(empty)
+
+
+def test_log_summary_includes_hostname(logfile):
+    # hostname value is the host portion of the first line's prefix
+    _make_session_log(logfile)
+    summary = log_summary(logfile)
+    assert summary["hostname"] == [_first_line_hostname(logfile)]
+
+
+def test_log_summary_hostname_strips_pid(tmp_path):
+    # hostname drops the :pid suffix, even for hosts containing colons
+    ts = "2026-06-09 10:00:00"
+    log = tmp_path / "host.log"
+    log.write_text(f"{ts}\tfqdn:host:12345\tINFO\tparams : alpha\n")
+    assert log_summary(log)["hostname"] == ["fqdn:host"]
+
+
+def test_log_summary_includes_os(logfile):
+    # os value is the system_details value with the system= prefix stripped
+    _make_session_log(logfile)
+    summary = log_summary(logfile)
+    expected = summary["system_details"][0].removeprefix("system=")
+    assert summary["os"] == [expected]
+
+
+def test_log_summary_os_absent_without_system_details(tmp_path):
+    # no system_details line means no os key
+    log = tmp_path / "no_sys.log"
+    log.write_text("2026-06-09 10:00:00\thost:1\tINFO\tparams : alpha\n")
+    assert "os" not in log_summary(log)
+
+
+def test_log_summary_os_without_system_prefix(tmp_path):
+    # a system_details value lacking the system= prefix is used verbatim
+    ts = "2026-06-09 10:00:00"
+    log = tmp_path / "raw_sys.log"
+    log.write_text(f"{ts}\thost:1\tINFO\tsystem_details : Darwin 25.5.0\n")
+    assert log_summary(log)["os"] == ["Darwin 25.5.0"]
+
+
+def test_log_summary_os_is_first_system_details(tmp_path):
+    # os captures only the first system_details line
+    ts = "2026-06-09 10:00:00"
+    log = tmp_path / "two_sys.log"
+    log.write_text(
+        f"{ts}\thost:1\tINFO\tsystem_details : system=first\n"
+        f"{ts}\thost:1\tINFO\tsystem_details : system=second\n",
+    )
+    assert log_summary(log)["os"] == ["first"]
+
+
+def test_log_summary_default_path_drops_reserved_label_line(tmp_path):
+    # a reserved-named label line is silently dropped on the default path
+    # and the derived os value still wins
+    ts = "2026-06-09 10:00:00"
+    log = tmp_path / "reserved_line.log"
+    log.write_text(
+        f"{ts}\thost:1\tINFO\tsystem_details : system=real\n"
+        f"{ts}\thost:1\tINFO\tos : spoofed\n",
+    )
+    summary = log_summary(log)
+    assert summary["os"] == ["real"]
+
+
+@pytest.mark.parametrize("label", ["datetime", "hostname", "os"])
+def test_log_summary_reserved_label_rejected(tmp_path, label):
+    # reserved keys cannot be requested via labels
+    log = tmp_path / "synth.log"
+    log.write_text("2026-06-09 10:00:00\thost:1\tINFO\tparams : alpha\n")
+    with pytest.raises(ValueError, match="reserved"):
+        log_summary(log, labels=[label])
+
+
+@pytest.mark.parametrize("label", ["datetime", "hostname", "os"])
+def test_log_summary_all_labels_rejects_reserved_line(tmp_path, label):
+    # an all_labels capture of a reserved-labelled line is rejected
+    ts = "2026-06-09 10:00:00"
+    log = tmp_path / "synth.log"
+    log.write_text(
+        f"{ts}\thost:1\tINFO\tparams : alpha\n{ts}\thost:1\tINFO\t{label} : whatever\n",
+    )
+    with pytest.raises(ValueError, match="reserved"):
+        log_summary(log, all_labels=True)
 
 
 def test_log_summary_preserves_values_with_colons(logfile):
@@ -1109,58 +1244,82 @@ def test_log_summary_empty_file(tmp_path):
 
 def test_log_summary_ignores_unknown_labels(tmp_path):
     """lines with an unrecognised label are skipped"""
+    ts = "2026-06-09 10:00:00"
+    host = "host"
     log = tmp_path / "synth.log"
     log.write_text(
-        "2026-06-09 10:00:00\thost:1\tINFO\tparams : alpha\n"
-        "2026-06-09 10:00:00\thost:1\tINFO\tnot_a_known_label : ignored\n"
-        "2026-06-09 10:00:00\thost:1\tINFO\tparams : beta\n",
+        f"{ts}\t{host}:1\tINFO\tparams : alpha\n"
+        f"{ts}\t{host}:1\tINFO\tnot_a_known_label : ignored\n"
+        f"{ts}\t{host}:1\tINFO\tparams : beta\n",
     )
     summary = log_summary(log)
-    assert summary == {"params": ["alpha", "beta"]}
+    assert summary == {
+        "datetime": [ts],
+        "hostname": [host],
+        "params": ["alpha", "beta"],
+    }
 
 
 def test_log_summary_skips_malformed_lines(tmp_path):
     """blank lines, lines with too few tabs, and lines without ' : ' are all skipped"""
+    ts = "2026-06-09 10:00:00"
+    host = "host"
     log = tmp_path / "malformed.log"
     log.write_text(
         "\n"  # blank
         "no tabs at all\n"  # < 4 fields
-        "2026-06-09 10:00:00\thost:1\tINFO\tno_colon_separator\n"  # no ' : '
-        "2026-06-09 10:00:00\thost:1\tINFO\tparams : kept\n",
+        f"{ts}\t{host}:1\tINFO\tno_colon_separator\n"  # no ' : '
+        f"{ts}\t{host}:1\tINFO\tparams : kept\n",
     )
-    assert log_summary(log) == {"params": ["kept"]}
+    assert log_summary(log) == {
+        "datetime": [ts],
+        "hostname": [host],
+        "params": ["kept"],
+    }
 
 
 def test_log_summary_multiple_entries_preserve_order(tmp_path):
     """multiple entries under the same label come back in file order"""
+    ts = "2026-06-09 10:00:00"
+    host = "host"
     log = tmp_path / "ordered.log"
     log.write_text(
-        "2026-06-09 10:00:00\thost:1\tINFO\tversion : a==1\n"
-        "2026-06-09 10:00:00\thost:1\tINFO\tversion : b==2\n"
-        "2026-06-09 10:00:00\thost:1\tINFO\tversion : c==3\n",
+        f"{ts}\t{host}:1\tINFO\tversion : a==1\n"
+        f"{ts}\t{host}:1\tINFO\tversion : b==2\n"
+        f"{ts}\t{host}:1\tINFO\tversion : c==3\n",
     )
-    assert log_summary(log) == {"version": ["a==1", "b==2", "c==3"]}
+    assert log_summary(log) == {
+        "datetime": [ts],
+        "hostname": [host],
+        "version": ["a==1", "b==2", "c==3"],
+    }
 
 
 def test_log_summary_recognises_license_label(tmp_path):
     """license lines emitted by log_licenses are captured by default"""
+    ts = "2026-06-09 10:00:00"
+    host = "host"
     log = tmp_path / "lic.log"
     log.write_text(
-        "2026-06-09 10:00:00\thost:1\tINFO\tlicense : scitrack==BSD-3-Clause\n"
-        "2026-06-09 10:00:00\thost:1\tINFO\tlicense : numpy==BSD-3-Clause\n",
+        f"{ts}\t{host}:1\tINFO\tlicense : scitrack==BSD-3-Clause\n"
+        f"{ts}\t{host}:1\tINFO\tlicense : numpy==BSD-3-Clause\n",
     )
     assert log_summary(log) == {
+        "datetime": [ts],
+        "hostname": [host],
         "license": ["scitrack==BSD-3-Clause", "numpy==BSD-3-Clause"],
     }
 
 
 def test_log_summary_all_labels_captures_unknown(tmp_path):
     """all_labels=True records every label, including ones not in the recognised set"""
+    ts = "2026-06-09 10:00:00"
+    host = "host"
     log = tmp_path / "all.log"
     log.write_text(
-        "2026-06-09 10:00:00\thost:1\tINFO\tparams : standard\n"
-        "2026-06-09 10:00:00\thost:1\tINFO\tbespoke_tag : x\n"
-        "2026-06-09 10:00:00\thost:1\tINFO\tanother_tag : y\n",
+        f"{ts}\t{host}:1\tINFO\tparams : standard\n"
+        f"{ts}\t{host}:1\tINFO\tbespoke_tag : x\n"
+        f"{ts}\t{host}:1\tINFO\tanother_tag : y\n",
     )
 
     default = log_summary(log)
@@ -1169,6 +1328,8 @@ def test_log_summary_all_labels_captures_unknown(tmp_path):
 
     everything = log_summary(log, all_labels=True)
     assert everything == {
+        "datetime": [ts],
+        "hostname": [host],
         "params": ["standard"],
         "bespoke_tag": ["x"],
         "another_tag": ["y"],
