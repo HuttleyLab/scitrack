@@ -832,23 +832,17 @@ def test_log_versions_uses_caller_package_name(monkeypatch, logfile):
 
 
 def test_log_versions_resolves_external_caller_package(monkeypatch, logfile):
-    # the real chain is consumer -> log_versions -> _log_metadata, so the
-    # frame above scitrack's own is the true caller. log_versions() must
-    # resolve that consumer package (numpy here) and log its version, rather
-    # than stopping at its immediate scitrack parent
+    # log_versions() captures the caller's frame directly, so its f_back is
+    # the consumer (numpy here) and that package's version is logged rather
+    # than scitrack's own
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.log_file_path = logfile
 
     class _Consumer:
         f_globals = {"__name__": "numpy"}
-        f_back = None
-
-    class _Scitrack:
-        f_globals = {"__name__": "scitrack"}
-        f_back = _Consumer()
 
     class _Frame:
-        f_back = _Scitrack()
+        f_back = _Consumer()
 
     monkeypatch.setattr(_scitrack.inspect, "currentframe", lambda: _Frame())
     LOGGER.log_versions()

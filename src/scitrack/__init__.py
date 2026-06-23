@@ -536,28 +536,18 @@ class CachingLogger:
         label: LogLabel,
         *,
         accept_modules: bool,
+        caller_name: str,
     ) -> None:
         """shared body for ``log_versions``/``log_licenses``.
 
         Notes
         -----
-        Resolves the caller's installed package, unions its installed
-        dependencies with ``packages``, resolves each name via
-        ``value_for``, then emits ``name==value`` lines under ``label``
-        with the caller first, the rest alphabetical. Lookups happen
-        eagerly so a failed resolution aborts before any line is written.
+        Unions ``caller_name``'s installed dependencies with ``packages``,
+        resolves each name via ``value_for``, then emits ``name==value``
+        lines under ``label`` with the caller first, the rest
+        alphabetical. Lookups happen eagerly so a failed resolution aborts
+        before any line is written.
         """
-        frame: types.FrameType | None = inspect.currentframe()
-        if frame is None:
-            return
-
-        parent = frame.f_back
-        del frame
-        if parent is None:
-            return
-
-        caller_name = _installed_package_from_globals(parent.f_globals)
-        del parent
         caller_value: str | None = None
         if caller_name:
             try:
@@ -614,11 +604,19 @@ class CachingLogger:
         after the caller's own version line. A name in ``packages`` that
         is not installed raises ``PackageNotFoundError``.
         """
+        frame = inspect.currentframe()
+        parent = frame.f_back if frame is not None else None
+        caller_name = (
+            _installed_package_from_globals(parent.f_globals)
+            if parent is not None
+            else ""
+        )
         self._log_metadata(
             packages,
             get_version_for_package,
             LogLabel.VERSION,
             accept_modules=True,
+            caller_name=caller_name,
         )
 
     def log_licenses(self, packages: list[str] | str | None = None) -> None:
@@ -639,11 +637,19 @@ class CachingLogger:
         in ``packages`` that is not installed raises
         ``PackageNotFoundError``.
         """
+        frame = inspect.currentframe()
+        parent = frame.f_back if frame is not None else None
+        caller_name = (
+            _installed_package_from_globals(parent.f_globals)
+            if parent is not None
+            else ""
+        )
         self._log_metadata(
             packages,
             _license_for_package,
             LogLabel.LICENSE,
             accept_modules=False,
+            caller_name=caller_name,
         )
 
 
