@@ -53,4 +53,12 @@ warn_unused_ignores = true
 warn_redundant_casts = true
 warn_unreachable = true
 
+[tool.coverage.run]
+source_pkgs = ["scitrack"]
+
+[tool.coverage.report]
+# restrict the report to scitrack; lazily imported stdlib modules
+# (zipfile, importlib.metadata) otherwise leak into the output
+include = ["*/scitrack/*"]
+
 # Ruff configuration lives in ./ruff.toml
