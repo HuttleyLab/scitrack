@@ -369,6 +369,23 @@ def test_tracks_versions_module(logfile):
             assert expect in line, line
 
 
+def test_log_versions_unresolvable_version_logs_unknown(logfile):
+    # a module with no version attribute -> version None normalised to UNKNOWN
+    pyfile = TEST_ROOTDIR / "delme_nover.py"
+    pyfile.write_text("answer = 42\n")
+    sys.path.append(str(TEST_ROOTDIR))
+    import delme_nover
+
+    LOGGER = CachingLogger(create_dir=True)
+    LOGGER.log_file_path = logfile
+    LOGGER.log_versions(delme_nover)
+    LOGGER.shutdown()
+    pyfile.unlink()
+    lines = logfile.read_text().splitlines()
+    assert any("delme_nover==UNKNOWN" in line for line in lines)
+    assert not any("delme_nover==None" in line for line in lines)
+
+
 def test_get_package_dependencies_not_installed(monkeypatch):
     # unknown package -> empty dict (never raises)
     def fake_requires(name):

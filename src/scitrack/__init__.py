@@ -549,8 +549,10 @@ class CachingLogger:
         Unions ``caller_name``'s installed dependencies with ``packages``,
         resolves each name via ``value_for``, then emits ``name==value``
         lines under ``label`` with the caller first, the rest
-        alphabetical. Lookups happen eagerly so a failed resolution aborts
-        before any line is written.
+        alphabetical. A ``None`` value is normalised to the ``"UNKNOWN"``
+        sentinel so a line is never written as ``name==None``. Lookups
+        happen eagerly so a failed resolution aborts before any line is
+        written.
         """
         caller_value: str | None = None
         if caller_name:
@@ -586,7 +588,8 @@ class CachingLogger:
             entries.append((pkg, value_for(pkg)))
 
         for name, value in entries:
-            self.log_message(f"{name}=={value}", label=label)
+            resolved = value if value is not None else "UNKNOWN"
+            self.log_message(f"{name}=={resolved}", label=label)
 
     def log_versions(self, packages: list[str] | str | None = None) -> None:
         """logs the caller's package, its installed dependencies, and named packages
