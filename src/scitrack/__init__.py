@@ -99,9 +99,12 @@ def get_package_name(obj: object | None = None) -> str:
 
     frame = inspect.currentframe()
     parent = frame.f_back if frame is not None else None
-    if parent is None:
-        return ""
-    return _installed_package_from_globals(parent.f_globals)
+    try:
+        if parent is None:
+            return ""
+        return _installed_package_from_globals(parent.f_globals)
+    finally:
+        del frame, parent
 
 
 def _version_via_metadata(name: str) -> str | None:
@@ -516,6 +519,7 @@ class CachingLogger:
             frame = inspect.currentframe()
             parent = frame.f_back if frame is not None else None
             args = inspect.getargvalues(parent).locals if parent is not None else {}
+            del frame, parent
 
         result = {
             k: args[k]
@@ -611,6 +615,7 @@ class CachingLogger:
             if parent is not None
             else ""
         )
+        del frame, parent
         self._log_metadata(
             packages,
             get_version_for_package,
@@ -644,6 +649,7 @@ class CachingLogger:
             if parent is not None
             else ""
         )
+        del frame, parent
         self._log_metadata(
             packages,
             _license_for_package,
