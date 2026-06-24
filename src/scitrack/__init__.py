@@ -99,9 +99,12 @@ def get_package_name(obj: object | None = None) -> str:
 
     frame = inspect.currentframe()
     parent = frame.f_back if frame is not None else None
-    if parent is None:
-        return ""
-    return _installed_package_from_globals(parent.f_globals)
+    try:
+        if parent is None:
+            return ""
+        return _installed_package_from_globals(parent.f_globals)
+    finally:
+        del frame, parent
 
 
 def _version_via_metadata(name: str) -> str | None:
@@ -516,6 +519,7 @@ class CachingLogger:
             frame = inspect.currentframe()
             parent = frame.f_back if frame is not None else None
             args = inspect.getargvalues(parent).locals if parent is not None else {}
+            del frame, parent
 
         result = {
             k: args[k]
@@ -545,8 +549,10 @@ class CachingLogger:
         Unions ``caller_name``'s installed dependencies with ``packages``,
         resolves each name via ``value_for``, then emits ``name==value``
         lines under ``label`` with the caller first, the rest
-        alphabetical. Lookups happen eagerly so a failed resolution aborts
-        before any line is written.
+        alphabetical. A ``None`` value is normalised to the ``"UNKNOWN"``
+        sentinel so a line is never written as ``name==None``. Lookups
+        happen eagerly so a failed resolution aborts before any line is
+        written.
         """
         caller_value: str | None = None
         if caller_name:
@@ -582,7 +588,8 @@ class CachingLogger:
             entries.append((pkg, value_for(pkg)))
 
         for name, value in entries:
-            self.log_message(f"{name}=={value}", label=label)
+            resolved = value if value is not None else "UNKNOWN"
+            self.log_message(f"{name}=={resolved}", label=label)
 
     def log_versions(self, packages: list[str] | str | None = None) -> None:
         """logs the caller's package, its installed dependencies, and named packages
@@ -611,6 +618,7 @@ class CachingLogger:
             if parent is not None
             else ""
         )
+        del frame, parent
         self._log_metadata(
             packages,
             get_version_for_package,
@@ -644,6 +652,7 @@ class CachingLogger:
             if parent is not None
             else ""
         )
+        del frame, parent
         self._log_metadata(
             packages,
             _license_for_package,
