@@ -39,6 +39,10 @@ jobs:
 
       - name: Coveralls Parallel
         uses: coverallsapp/github-action@v2
+        env:
+          # macOS installs the coverage-reporter via a third-party Homebrew
+          # tap; Homebrew's new tap-trust enforcement refuses it otherwise.
+          HOMEBREW_NO_REQUIRE_TAP_TRUST: 1
         with:
           parallel: true
           github-token: ${{ secrets.github_token }}
