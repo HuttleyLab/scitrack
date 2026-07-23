@@ -19,15 +19,15 @@ jobs:
         python-version: ["3.10", "3.14"]
 
     steps:
-      - uses: "actions/checkout@v7.0.0"
+      - uses: "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0" # v7.0.0
         with:
           fetch-depth: 0
 
-      - uses: "astral-sh/setup-uv@v8.3.2"
+      - uses: "astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990" # v8.3.2
         with:
           enable-cache: true
 
-      - uses: "actions/setup-python@v6.2.0"
+      - uses: "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1" # v6.3.0
         with:
             python-version: "${{ matrix.python-version }}"
 
@@ -37,12 +37,14 @@ jobs:
       - name: "Run nox for ${{ matrix.python-version }}"
         run: "nox -db uv -s test-${{ matrix.python-version }} -- --cov-report lcov:lcov-${{matrix.os}}-${{matrix.python-version}}.lcov --cov-report term --cov-append --cov scitrack"
 
+
+      - name: trust coveralls (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew trust coverallsapp/coveralls
+
       - name: Coveralls Parallel
-        uses: coverallsapp/github-action@v2
-        env:
-          # macOS installs the coverage-reporter via a third-party Homebrew
-          # tap; Homebrew's new tap-trust enforcement refuses it otherwise.
-          HOMEBREW_NO_REQUIRE_TAP_TRUST: 1
+        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e # v2.3.7
         with:
           parallel: true
           github-token: ${{ secrets.github_token }}
@@ -55,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Coveralls Finished
-      uses: coverallsapp/github-action@v2
+      uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e # v2.3.7
       with:
         github-token: ${{ secrets.github_token }}
         parallel-finished: true
