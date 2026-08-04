@@ -1,5 +1,5 @@
 [![CI](https://github.com/HuttleyLab/scitrack/actions/workflows/testing_develop.yml/badge.svg)](https://github.com/HuttleyLab/scitrack/actions/workflows/testing_develop.yml)
-[![coverall](https://coveralls.io/repos/github/GavinHuttley/scitrack/badge.svg?branch=develop)](https://coveralls.io/github/GavinHuttley/scitrack?branch=develop)
+[![Coverage Status](https://coveralls.io/repos/github/HuttleyLab/scitrack/badge.svg?branch=develop)](https://coveralls.io/github/HuttleyLab/scitrack?branch=develop)
 [![Using Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-310/)
 
