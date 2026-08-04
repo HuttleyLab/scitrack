@@ -615,29 +615,29 @@ def test_get_package_dependencies_if_installed_empty_requires_no_probe(monkeypat
     assert probed == []
 
 
+def _records_without_timestamp(logfile):
+    # count log lines with the leading "%Y-%m-%d %H:%M:%S" field dropped so
+    # two runs are comparable even when they straddle a one-second boundary
+    records = Counter()
+    for line in logfile.read_text().splitlines():
+        records[line.split("\t", 1)[-1]] += 1
+    return set(records.values())
+
+
 def test_appending(logfile):
     """appending to an existing logfile should work"""
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.log_file_path = logfile
     LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
     LOGGER.shutdown()
-    records = Counter()
-    for line in logfile.read_text().splitlines():
-        records[line] += 1
-    vals = set(records.values())
-    assert vals == {1}
+    assert _records_without_timestamp(logfile) == {1}
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.mode = "a"
     LOGGER.log_file_path = logfile
     LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
     LOGGER.shutdown()
 
-    records = Counter()
-    for line in logfile.read_text().splitlines():
-        records[line] += 1
-    vals = set(records.values())
-
-    assert vals == {2}
+    assert _records_without_timestamp(logfile) == {2}
 
 
 def test_mdsum_input(logfile):
