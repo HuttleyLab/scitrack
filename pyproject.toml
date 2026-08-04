@@ -13,7 +13,7 @@ authors = [{ name = "Gavin Huttley", email = "Gavin.Huttley@anu.edu.au" }]
 requires-python = ">=3.10"
 keywords = ["science", "logging"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Software Development :: Libraries :: Python Modules",
