@@ -29,6 +29,7 @@ Creating the logger. Setting `create_dir=True` means on creation of the logfile,
 
 ```python
 from scitrack import CachingLogger
+
 LOGGER = CachingLogger(create_dir=True)
 LOGGER.log_file_path = "somedir/some_path.log"
 ```

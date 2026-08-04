@@ -1,3 +1,4 @@
+import importlib
 import logging
 import sys
 from collections import Counter
@@ -29,6 +30,27 @@ LOGFILE_NAME = "delme.log"
 @pytest.fixture
 def logfile(tmp_path):
     return tmp_path / LOGFILE_NAME
+
+
+@pytest.fixture
+def make_module(tmp_path, monkeypatch):
+    # creates an importable module from source in an isolated tmp dir
+    monkeypatch.syspath_prepend(str(tmp_path))
+    created: list[str] = []
+
+    def make(name, source):
+        (tmp_path / f"{name}.py").write_text(source)
+        # invalidate_caches() is required because the directory is added to
+        # sys.path after interpreter start, so the import system's directory
+        # cache would otherwise not see the newly written file
+        importlib.invalidate_caches()
+        created.append(name)
+        return importlib.import_module(name)
+
+    yield make
+
+    for name in created:
+        sys.modules.pop(name, None)
 
 
 def test_creates_path(logfile):
@@ -312,46 +334,32 @@ def test_log_versions_partial_list_raises_eagerly(logfile):
     assert not any("version :" in line for line in logfile.read_text().splitlines())
 
 
-def test_log_versions_uninstalled_module_does_not_raise(logfile):
-    # an imported module with no installed dist -> no raise; version recorded
-    pyfile = TEST_ROOTDIR / "delme_log.py"
-    pyfile.write_text("__version__ = 'local-only'\n")
-    sys.path.append(str(TEST_ROOTDIR))
-    import delme_log
+def test_log_versions_uninstalled_module_does_not_raise(logfile, make_module):
+    # an imported module with no installed dist -> version is recorded
+    module = make_module("delme_log", "__version__ = 'local-only'\n")
 
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.log_file_path = logfile
-    LOGGER.log_versions(delme_log)
+    LOGGER.log_versions(module)
     LOGGER.shutdown()
-    pyfile.unlink()
     assert any(
         "delme_log==local-only" in line for line in logfile.read_text().splitlines()
     )
 
 
-def test_get_version_for_package():
+def test_get_version_for_package(make_module):
     """should track version if package is a module"""
     import numpy as np
 
     got = get_version_for_package(np)
     assert got == np.__version__
-    # one with a callable
-    pyfile = TEST_ROOTDIR / "delme.py"
-    pyfile.write_text("def version():\n  return 'my-version'")
-    sys.path.append(TEST_ROOTDIR)
-    import delme
+    # version is a callable
+    make_module("delme_callable", "def version():\n  return 'my-version'")
+    assert get_version_for_package("delme_callable") == "my-version"
 
-    got = get_version_for_package("delme")
-    assert got == "my-version"
-    pyfile.unlink()
-
-    # func returns a list
-    pyfile.write_text("version = ['my-version']\n")
-    from importlib import reload
-
-    got = get_version_for_package(reload(delme))
-    assert got == "my-version"
-    pyfile.unlink()
+    # version is a list
+    module = make_module("delme_list", "version = ['my-version']\n")
+    assert get_version_for_package(module) == "my-version"
 
 
 def test_tracks_versions_module(logfile):
@@ -369,18 +377,14 @@ def test_tracks_versions_module(logfile):
             assert expect in line, line
 
 
-def test_log_versions_unresolvable_version_logs_unknown(logfile):
+def test_log_versions_unresolvable_version_logs_unknown(logfile, make_module):
     # a module with no version attribute -> version None normalised to UNKNOWN
-    pyfile = TEST_ROOTDIR / "delme_nover.py"
-    pyfile.write_text("answer = 42\n")
-    sys.path.append(str(TEST_ROOTDIR))
-    import delme_nover
+    module = make_module("delme_nover", "answer = 42\n")
 
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.log_file_path = logfile
-    LOGGER.log_versions(delme_nover)
+    LOGGER.log_versions(module)
     LOGGER.shutdown()
-    pyfile.unlink()
     lines = logfile.read_text().splitlines()
     assert any("delme_nover==UNKNOWN" in line for line in lines)
     assert not any("delme_nover==None" in line for line in lines)
@@ -611,29 +615,29 @@ def test_get_package_dependencies_if_installed_empty_requires_no_probe(monkeypat
     assert probed == []
 
 
+def _records_without_timestamp(logfile):
+    # count log lines with the leading "%Y-%m-%d %H:%M:%S" field dropped so
+    # two runs are comparable even when they straddle a one-second boundary
+    records = Counter()
+    for line in logfile.read_text().splitlines():
+        records[line.split("\t", 1)[-1]] += 1
+    return set(records.values())
+
+
 def test_appending(logfile):
     """appending to an existing logfile should work"""
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.log_file_path = logfile
     LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
     LOGGER.shutdown()
-    records = Counter()
-    for line in logfile.read_text().splitlines():
-        records[line] += 1
-    vals = set(records.values())
-    assert vals == {1}
+    assert _records_without_timestamp(logfile) == {1}
     LOGGER = CachingLogger(create_dir=True)
     LOGGER.mode = "a"
     LOGGER.log_file_path = logfile
     LOGGER.input_file(TEST_ROOTDIR / "sample-lf.fasta")
     LOGGER.shutdown()
 
-    records = Counter()
-    for line in logfile.read_text().splitlines():
-        records[line] += 1
-    vals = set(records.values())
-
-    assert vals == {2}
+    assert _records_without_timestamp(logfile) == {2}
 
 
 def test_mdsum_input(logfile):
