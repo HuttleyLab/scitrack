@@ -19,7 +19,7 @@ from enum import Enum
 from getpass import getuser
 from pathlib import Path
 
-__version__ = "2026.6.24"
+__version__ = "2026.8.5"
 
 
 VERSION_ATTRS = ["__version__", "version", "VERSION"]
