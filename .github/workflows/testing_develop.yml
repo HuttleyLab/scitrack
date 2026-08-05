@@ -35,7 +35,7 @@ jobs:
         run: uv tool install nox
 
       - name: "Run nox for ${{ matrix.python-version }}"
-        run: "nox -db uv -s test-${{ matrix.python-version }} -- --cov-report lcov:lcov-${{matrix.os}}-${{matrix.python-version}}.lcov --cov-report term --cov-append --cov scitrack"
+        run: "nox -db uv -s test-${{ matrix.python-version }} -- --cov-config=${{ github.workspace }}/pyproject.toml --cov-report lcov:lcov-${{matrix.os}}-${{matrix.python-version}}.lcov --cov-report term --cov-append --cov scitrack"
 
 
       - name: trust coveralls (macOS)
