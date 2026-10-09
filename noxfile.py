@@ -1,6 +1,6 @@
 import nox
 
-py_vers = [f"3.{v}" for v in range(10, 15)]
+py_vers = [f"3.{v}" for v in range(11, 16)]
 
 
 @nox.session(python=py_vers[-1], venv_backend="uv")
